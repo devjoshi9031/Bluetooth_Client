@@ -1,5 +1,11 @@
 from bluepy.btle import Scanner, DefaultDelegate
 
+SHT_PRIMARY_UUID = ''
+
+
+
+
+# Scan Delegate class to catch the notifications.
 class ScanDelegate(DefaultDelegate):
     def __init__(self):
         DefaultDelegate.__init__(self)
@@ -9,8 +15,6 @@ class ScanDelegate(DefaultDelegate):
             print ("Discovered device", dev.addr)
         elif isNewData:
             print ("Received new data from", dev.addr)
-            
-
         
 
 scanner = Scanner().withDelegate(ScanDelegate())
