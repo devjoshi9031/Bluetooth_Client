@@ -1,3 +1,4 @@
+from Bluetooth_Client.helper import BMP_service, DS_service, LSM_service, SCD_service
 from bluepy.btle import *
 import sys
 from helper import *
@@ -41,7 +42,7 @@ Primary_svcs = [SHT_UUID, APDS_UUID, BMP_UUID, LSM_UUID, SCD_UUID, DS_UUID]
 
 
 def print_svcs(per):
-        svc = per.getServices();
+        svc = per.getServices()
         for s in svc:
                 ch = s.getCharacteristics()
                 for c in ch:
@@ -54,10 +55,9 @@ class notifDelegate(DefaultDelegate):
         DefaultDelegate.__init__(self)
         
     def handleNotification(self, cHandle, data):
-#         tup = struct.unpack('h', data)
-        # ~ dat = binascii.b2a_hex(data)
-        dat=int.from_bytes(data, byteorder=sys.byteorder)
-        print("Handle: " +str(cHandle)+"Value of the Temp: %.2f",(dat/100))
+        # dat=int.from_bytes(data, byteorder=sys.byteorder)
+        if(cHandle==)
+        
 
        
 print("Connecting to the device: \n"+str(Address))
@@ -71,17 +71,26 @@ print("Successfully connected to the device")
 
 print_svcs(per)
 
-print("Enabling SHT and APDS...\n")
-sht = SHT_service(periph=per)
+print("Enabling ALL SENSORS...\n")
+SHT = SHT_service(periph=per)
 APDS = APDS_service(periph=per)
+BMP = BMP_service(periph=per)
+LSM = LSM_service(periph=per)
+SCD = SCD_service(periph=per)
+DS = DS_service(periph=per)
 
-print("Configuring SHT and APDS...\n")
-sht.configure()
+
+print("Configuring ALL SENSORS...\n")
+SHT.configure()
 APDS.configure()
+BMP.configure()
+LSM.configure()
+SCD.configure()
+DS.configure()
 #APDS.getHandle()
 
-print("Printing the Handles\n")
-print_handle()
+# print("Printing the Handles\n")
+# print_handle()
 
 while True:
     if per.waitForNotifications(1.0):
