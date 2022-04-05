@@ -1,7 +1,19 @@
-from Bluetooth_Client.helper import BMP_service, DS_service, LSM_service, SCD_service
+# from Bluetooth_Client.helper import BMP_service, DS_service, LSM_service, SCD_service
 from bluepy.btle import *
 import sys
 from helper import *
+import time
+import sys
+import datetime
+from influxdb import InfluxDBClient
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
+
+token = "m1gTOsTToWUNZP-CWvZa0vIS5T2o-4_48dvQ8sgw4N-Lk2i5aQnOIBy2ycYwQB57x9Inu-1KQwj17IGUzKL-AA=="
+org = "ciber"
+bucket = "final_test"
+
+
 Address = 'cf:d8:b3:75:d1:d5'
 
 '''
@@ -39,6 +51,31 @@ CCCD_UUID = '2902'
 Primary_svcs = [SHT_UUID, APDS_UUID, BMP_UUID, LSM_UUID, SCD_UUID, DS_UUID]
 '''
 
+session = "dev"
+now = datetime.datetime.now()
+runNo = now.strftime("%Y%m%d%H%M")
+print ("Session: ", session)
+print ("runNo: ", runNo)
+
+def prepare_influx_data(temp):        
+        iso = time.ctime()       
+        json_body = [
+        {
+            "measurement": session,
+                "time_t": iso,
+                "fields": {
+                    "Temperature": temp,
+                    # "humidity": humidity,
+                }
+            }
+        ]
+        write_influx_data(json_body)
+        
+def write_influx_data(json_body):  
+    with InfluxDBClient(url="http://149.165.168.73:8086", token=token, org=org) as client:
+        write_api = client.write_api(write_options=SYNCHRONOUS)     
+        write_api.write(bucket, org, json_body)
+        client.close()
 
 
 def print_svcs(per):
@@ -55,8 +92,13 @@ class notifDelegate(DefaultDelegate):
         DefaultDelegate.__init__(self)
         
     def handleNotification(self, cHandle, data):
-        # dat=int.from_bytes(data, byteorder=sys.byteorder)
-        if(cHandle==)
+        dat=int.from_bytes(data, byteorder=sys.byteorder)
+        if(cHandle==SHT.sht_temp_chrc.valHandle):
+            print("Temp. : "+str(dat/100)+ " degrees")
+            prepare_influx_data(dat/100)
+
+        # elif(cHandle==SHT.sht_hum_chrc.valHandle):
+        #     print("Hum. : "+str(dat/100) + " Percentage")    
         
 
        
@@ -82,11 +124,11 @@ DS = DS_service(periph=per)
 
 print("Configuring ALL SENSORS...\n")
 SHT.configure()
-APDS.configure()
-BMP.configure()
-LSM.configure()
-SCD.configure()
-DS.configure()
+# APDS.configure()
+# BMP.configure()
+# LSM.configure()
+# SCD.configure()
+# DS.configure()
 #APDS.getHandle()
 
 # print("Printing the Handles\n")
@@ -96,3 +138,11 @@ while True:
     if per.waitForNotifications(1.0):
         continue
         
+
+# a = int(input("HOw many times you want to run the code: "))
+# for i in range(0,a):
+#     # name = input("Write the name")
+#     age = i*100
+#     # some = float(input("Write something in float data type"))
+#     prepare_influx_data(age, i, a)
+# write_influx_data(a)

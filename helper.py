@@ -1,16 +1,4 @@
-
-
-
-
-
-
-
-
-
-
 CCCD_UUID = '2902'
-
-
         
 '''
 handle[0] = sht_temp
