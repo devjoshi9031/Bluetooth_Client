@@ -29,7 +29,7 @@ APDS_CLEAR_UUID = '3c321537-4b8e-4662-93f9-cb7df0e437c5'
 
 BMP_PRIM_UUID = 'f4356abe-b85f-47c7-ab4e-54df8f4ad025'
 BMP_TEMP_UUID = '0x2A6E'
-BMP_HUM_UUID = '0x2A6F'
+BMP_HUM_UUID = '0x2A6D'
 
 LSM_PRIM_UUID = 'e82bd800-c62c-43d5-b03f-c7381b38892a'
 LSM_ACCELX_UUID = '461d287d-1ccd-46bf-8498-60139deeeb27'
@@ -51,25 +51,50 @@ CCCD_UUID = '2902'
 Primary_svcs = [SHT_UUID, APDS_UUID, BMP_UUID, LSM_UUID, SCD_UUID, DS_UUID]
 '''
 
-session = "dev"
-now = datetime.datetime.now()
-runNo = now.strftime("%Y%m%d%H%M")
-print ("Session: ", session)
-print ("runNo: ", runNo)
-
-def prepare_influx_data(temp):        
-        iso = time.ctime()       
+def prepare_influx_data(_measurement):        
+    iso = time.ctime()
+    if(_measurement == "SHT31"):
+        SHT.tempisfresh=False
+        SHT.humisfresh=False       
         json_body = [
         {
-            "measurement": session,
+            "measurement": "SHT31",
                 "time_t": iso,
                 "fields": {
-                    "Temperature": temp,
-                    # "humidity": humidity,
+                    "Temperature": SHT.sht_temp_data,
+                    "humidity": SHT.sht_hum_data,
                 }
             }
         ]
-        write_influx_data(json_body)
+    elif(_measurement == "APDS"):
+        json_body = [
+        {
+            "measurement": "APDS",
+                "time_t": iso,
+                "fields": {
+                    "Clear_Light": APDS.apds_clear_data,
+                }
+            }
+        ]
+    
+    elif(_measurement == "BMP"):
+        BMP.tempisfresh = False
+        BMP.pressisfresh = False
+        json_body = [
+        {
+            "measurement": "BMP",
+                "time_t": iso,
+                "fields": {
+                    "Temperature": BMP.bmp_temp_data,
+                    "Pressure": BMP.bmp_press_data,
+                }
+            }
+        ]
+    else:
+        print("No JSON CREATED...\n")
+        return
+        
+    write_influx_data(json_body)
         
 def write_influx_data(json_body):  
     with InfluxDBClient(url="http://149.165.168.73:8086", token=token, org=org) as client:
@@ -85,7 +110,12 @@ def print_svcs(per):
                 for c in ch:
                         print(s.uuid, c)
 
-
+def connect_device(addr):
+    print("Connecting to {} device...".format(addr))
+    per = Peripheral(addr, ADDR_TYPE_RANDOM, iface=0)
+    per.setDelegate(notifDelegate())
+    print("Successfully Connected to {} device\n".format(addr))
+    return per
 
 class notifDelegate(DefaultDelegate):
     def __init__(self):
@@ -94,50 +124,81 @@ class notifDelegate(DefaultDelegate):
     def handleNotification(self, cHandle, data):
         dat=int.from_bytes(data, byteorder=sys.byteorder)
         if(cHandle==SHT.sht_temp_chrc.valHandle):
-            print("Temp. : "+str(dat/100)+ " degrees")
-            prepare_influx_data(dat/100)
+            SHT.tempisfresh = True
+            # Make something here to make sure that this is a fresh data
+            SHT.sht_temp_data = dat/100
+            print("SHT_Temp : "+str(dat/100)+ " degrees")
+            # Check if the humidity data is fresh. If fresh sent it.
+            if(SHT.humisfresh == True):
+                prepare_influx_data("SHT31")
+        elif(cHandle==SHT.sht_hum_chrc.valHandle):
+            SHT.humisfresh = True
+            SHT.sht_hum_data = dat/100
+            print("SHT_Humidity :{} %".format(dat/100))
+            if(SHT.tempisfresh == True):
+                prepare_influx_data("SHT31")
+        elif(cHandle==APDS.apds_clear_chrc.valHandle):
+            APDS.apds_clear_data = dat
+            # Add code to send it to flux
+            print("APDS Clear Light: {}".format(dat))    
+            prepare_influx_data("APDS")
+        
+        elif(cHandle==BMP.bmp_temp_chrc.valHandle):
+            BMP.tempisfresh=True
+            BMP.bmp_temp_data = dat/100
+            print("BMP temp: {}".format(dat/100))
+            if (BMP.pressisfresh == True):
+                prepare_influx_data("BMP")
+               
+        elif(cHandle==BMP.bmp_press_chrc.valHandle):
+            BMP.pressisfresh=True
+            BMP.bmp_press_data = dat/100
+            print("BMP temp: {}".format(dat/100))
+            if(BMP.tempisfresh==True):
+                prepare_influx_data("BMP")
+        
+        
+        
+                   
+            
 
         # elif(cHandle==SHT.sht_hum_chrc.valHandle):
         #     print("Hum. : "+str(dat/100) + " Percentage")    
         
 
-       
-print("Connecting to the device: \n"+str(Address))
+while(1):
+    # try:       
+    per = connect_device(Address)
+    print_svcs(per)
 
-# Connect to the peripheral with the address mentioned above.
-per = Peripheral(Address, ADDR_TYPE_RANDOM, iface=0)
-per.setDelegate(notifDelegate())
-
-print("Successfully connected to the device")
-
-
-print_svcs(per)
-
-print("Enabling ALL SENSORS...\n")
-SHT = SHT_service(periph=per)
-APDS = APDS_service(periph=per)
-BMP = BMP_service(periph=per)
-LSM = LSM_service(periph=per)
-SCD = SCD_service(periph=per)
-DS = DS_service(periph=per)
+    print("Enabling ALL SENSORS...\n")
+    SHT = SHT_service(periph=per)
+    APDS = APDS_service(periph=per)
+    BMP = BMP_service(periph=per)
+    # LSM = LSM_service(periph=per)
+    # SCD = SCD_service(periph=per)
+    # DS = DS_service(periph=per)
 
 
-print("Configuring ALL SENSORS...\n")
-SHT.configure()
-# APDS.configure()
-# BMP.configure()
-# LSM.configure()
-# SCD.configure()
-# DS.configure()
-#APDS.getHandle()
+    print("Configuring ALL SENSORS...\n")
+    SHT.configure()
+    APDS.configure()
+    BMP.configure()
+    # LSM.configure()
+    # SCD.configure()
+    # DS.configure()
+    #APDS.getHandle()
 
-# print("Printing the Handles\n")
-# print_handle()
-
-while True:
-    if per.waitForNotifications(1.0):
-        continue
+    # print("Printing the Handles\n")
+    # print_handle()
+    print("Done Configuring sensors...\n")
+    while True:
+        if per.waitForNotifications(1.0):
+            continue
         
+
+    # except Exception as e:
+    #     print( "Outside Exception Occured",e)            
 
 # a = int(input("HOw many times you want to run the code: "))
 # for i in range(0,a):
