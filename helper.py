@@ -132,6 +132,12 @@ class LSM_service():
 		self.lsm_accely_chrc_cccd = None
 		self.lsm_accelz_chrc = None
 		self.lsm_accelz_chrc_cccd = None
+		self.lsm_accelx_data=0
+		self.lsm_accelx_is_fresh=False
+		self.lsm_accely_data=0
+		self.lsm_accely_is_fresh=False
+		self.lsm_accelz_data=0
+		self.lsm_accelz_is_fresh=False
                 
 	def getService(self):
 		self.lsm_svc = self.per.getServiceByUUID(self.LSM_PRIM_UUID)

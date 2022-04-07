@@ -153,9 +153,26 @@ class notifDelegate(DefaultDelegate):
         elif(cHandle==BMP.bmp_press_chrc.valHandle):
             BMP.pressisfresh=True
             BMP.bmp_press_data = dat/100
-            print("BMP temp: {}".format(dat/100))
+            print("BMP Pressure: {}".format(dat/100))
             if(BMP.tempisfresh==True):
                 prepare_influx_data("BMP")
+        
+        elif(cHandle == LSM.lsm_accelx_chrc.valHandle):
+            LSM.lsm_accelx_is_fresh=True
+            LSM.lsm_accelx_data = dat/100
+            print("LSM AccelX value: {}".format(dat/100))
+        
+        elif(cHandle == LSM.lsm_accely_chrc.valHandle):
+            LSM.lsm_accely_is_fresh=True
+            LSM.lsm_accely_data = dat/100
+            print("LSM AccelY value: {}".format(dat/100))
+            
+        elif(cHandle == LSM.lsm_accelz_chrc.valHandle):
+            LSM.lsm_accelz_is_fresh=True
+            LSM.lsm_accelz_data = dat/100
+            print("LSM AccelZ value: {}".format(dat/100))
+        
+
         
         
         
@@ -175,7 +192,7 @@ while(1):
     SHT = SHT_service(periph=per)
     APDS = APDS_service(periph=per)
     BMP = BMP_service(periph=per)
-    # LSM = LSM_service(periph=per)
+    LSM = LSM_service(periph=per)
     # SCD = SCD_service(periph=per)
     # DS = DS_service(periph=per)
 
@@ -184,7 +201,7 @@ while(1):
     SHT.configure()
     APDS.configure()
     BMP.configure()
-    # LSM.configure()
+    LSM.configure()
     # SCD.configure()
     # DS.configure()
     #APDS.getHandle()
