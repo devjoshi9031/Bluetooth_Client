@@ -245,6 +245,12 @@ class SCD_service():
 		self.scd_hum_chrc_cccd = 0
 		self.scd_co2_chrc = None
 		self.scd_co2_chrc_cccd = None
+		self.scd_temp_data=0
+		self.scd_hum_data=0
+		self.scd_co2_data=0
+		self.scd_temp_is_fresh=False
+		self.scd_hum_is_fresh=False
+		self.scd_co2_is_fresh=False
 			
 	def getService(self):
 		self.scd_svc = self.per.getServiceByUUID(self.SCD_PRI_UUID)
@@ -296,6 +302,8 @@ class DS_service():
 		self.ds_svc = None
 		self.ds_temp_chrc = None
 		self.ds_temp_chrc_cccd = 0
+		self.ds_temp_data=0
+		self.ds_temp_is_fresh=False
 			
 	def getService(self):
 		self.ds_svc = self.per.getServiceByUUID(self.DS_PRI_UUID)

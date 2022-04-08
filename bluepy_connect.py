@@ -1,4 +1,7 @@
+#!/usr/bin/env python
 # from Bluetooth_Client.helper import BMP_service, DS_service, LSM_service, SCD_service
+from multiprocessing.spawn import prepare
+from attr import field
 from bluepy.btle import *
 import sys
 from helper import *
@@ -8,6 +11,8 @@ import datetime
 from influxdb import InfluxDBClient
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
+import http.client, urllib
+
 
 token = "m1gTOsTToWUNZP-CWvZa0vIS5T2o-4_48dvQ8sgw4N-Lk2i5aQnOIBy2ycYwQB57x9Inu-1KQwj17IGUzKL-AA=="
 org = "ciber"
@@ -51,6 +56,19 @@ CCCD_UUID = '2902'
 Primary_svcs = [SHT_UUID, APDS_UUID, BMP_UUID, LSM_UUID, SCD_UUID, DS_UUID]
 '''
 
+def send_message(_msg):
+    conn = http.client.HTTPSConnection("api.pushover.net:443")
+    conn.request("POST", "/1/messages.json",
+    urllib.parse.urlencode({
+        "token": "a8q76apfdh5smhxg6k234yc1djzr8r",
+        "user": "uq19utktqpezbycu36ijf61pmdzzin",
+        "message": _msg,
+    }), { "Content-type": "application/x-www-form-urlencoded" })
+    conn.getresponse()
+
+
+
+
 def prepare_influx_data(_measurement):        
     iso = time.ctime()
     if(_measurement == "SHT31"):
@@ -62,7 +80,7 @@ def prepare_influx_data(_measurement):
                 "time_t": iso,
                 "fields": {
                     "Temperature": SHT.sht_temp_data,
-                    "humidity": SHT.sht_hum_data,
+                    "Humidity": SHT.sht_hum_data,
                 }
             }
         ]
@@ -88,6 +106,48 @@ def prepare_influx_data(_measurement):
                     "Temperature": BMP.bmp_temp_data,
                     "Pressure": BMP.bmp_press_data,
                 }
+            }
+        ]
+    elif(_measurement == "LSM"):
+        LSM.lsm_accelx_is_fresh=False
+        LSM.lsm_accely_is_fresh=False
+        LSM.lsm_accelz_is_fresh=False
+        json_body = [
+        {
+            "measurement": "LSM",
+                "time_t": iso,
+                "fields": {
+                    "Accel_X": LSM.lsm_accelx_data,
+                    "Accel_Y": LSM.lsm_accely_data,
+                    "Accel_Z": LSM.lsm_accelz_data,
+                }
+            }
+        ]
+    elif(_measurement=="SCD"):
+        SCD.scd_co2_is_fresh=False
+        SCD.scd_temp_is_fresh=False
+        SCD.scd_hum_is_fresh=False
+        json_body = [
+        {
+            "measurement": "SCD",
+                "time_t": iso,
+                "fields": {
+                    "Temperature": SCD.scd_temp_data,
+                    "Humidity": SCD.scd_hum_data,
+                    "Gas": SCD.scd_co2_data,
+                }
+            }
+        ]
+    elif(_measurement=="DS"):
+        DS.ds_temp_is_fresh=False
+        json_body = [
+        {
+            "measurement": _measurement,
+            "time_t":iso,
+            "fields": {
+                "Temperature": DS.ds_temp_data,
+            }
+            
             }
         ]
     else:
@@ -159,68 +219,78 @@ class notifDelegate(DefaultDelegate):
         
         elif(cHandle == LSM.lsm_accelx_chrc.valHandle):
             LSM.lsm_accelx_is_fresh=True
-            LSM.lsm_accelx_data = dat/100
-            print("LSM AccelX value: {}".format(dat/100))
+            LSM.lsm_accelx_data = (dat-32768)/100
+            print("LSM AccelX value: {}".format((dat-32768)/100))
+            if(LSM.lsm_accely_is_fresh == True and LSM.lsm_accelz_is_fresh==True):
+                prepare_influx_data("LSM")
         
         elif(cHandle == LSM.lsm_accely_chrc.valHandle):
             LSM.lsm_accely_is_fresh=True
-            LSM.lsm_accely_data = dat/100
-            print("LSM AccelY value: {}".format(dat/100))
+            LSM.lsm_accely_data = (dat-32768)/100
+            print("LSM AccelY value: {}".format((dat-32768)/100))
+            if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accelz_is_fresh==True):
+                prepare_influx_data("LSM")
             
         elif(cHandle == LSM.lsm_accelz_chrc.valHandle):
             LSM.lsm_accelz_is_fresh=True
-            LSM.lsm_accelz_data = dat/100
-            print("LSM AccelZ value: {}".format(dat/100))
+            LSM.lsm_accelz_data = (dat-32768)/100
+            print("LSM AccelZ value: {}".format((dat-32768)/100))
+            if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accely_is_fresh==True):
+                prepare_influx_data("LSM")
         
+        elif(cHandle == SCD.scd_co2_chrc.valHandle):
+            SCD.scd_co2_is_fresh=True
+            SCD.scd_co2_data = dat
+            print("SCD Co2 value: {}".format(dat))
+            if(SCD.scd_hum_is_fresh==True and SCD.scd_temp_is_fresh==True):
+                prepare_influx_data("SCD")
+        elif(cHandle == SCD.scd_temp_chrc.valHandle):
+            SCD.scd_temp_is_fresh = True
+            SCD.scd_temp_data = dat/100
+            print("SCD temp value: {}".format(dat/100))
+            if(SCD.scd_co2_is_fresh == True and SCD.scd_hum_is_fresh==True):
+                prepare_influx_data("SCD")
+        elif(cHandle == SCD.scd_hum_chrc.valHandle):
+            SCD.scd_hum_is_fresh=True
+            SCD.scd_hum_data = dat/100
+            print("SCD temp value: {}".format(dat))
+            if(SCD.scd_temp_is_fresh == True and SCD.scd_co2_is_fresh==True):
+                prepare_influx_data("SCD")
+        elif(cHandle == DS.ds_temp_chrc.valHandle):
+            DS.ds_temp_is_fresh=True
+            DS.ds_temp_data = (dat/100)
+            print("DS temp value: {}".format(dat/100))
+            prepare_influx_data("DS")
 
-        
-        
-        
-                   
-            
-
-        # elif(cHandle==SHT.sht_hum_chrc.valHandle):
-        #     print("Hum. : "+str(dat/100) + " Percentage")    
-        
+    
 
 while(1):
-    # try:       
-    per = connect_device(Address)
-    print_svcs(per)
+    try:       
+        per = connect_device(Address)
+        print_svcs(per)
 
-    print("Enabling ALL SENSORS...\n")
-    SHT = SHT_service(periph=per)
-    APDS = APDS_service(periph=per)
-    BMP = BMP_service(periph=per)
-    LSM = LSM_service(periph=per)
-    # SCD = SCD_service(periph=per)
-    # DS = DS_service(periph=per)
+        print("Enabling ALL SENSORS...\n")
+        SHT = SHT_service(periph=per)
+        APDS = APDS_service(periph=per)
+        BMP = BMP_service(periph=per)
+        LSM = LSM_service(periph=per)
+        SCD = SCD_service(periph=per)
+        DS = DS_service(periph=per)
 
 
-    print("Configuring ALL SENSORS...\n")
-    SHT.configure()
-    APDS.configure()
-    BMP.configure()
-    LSM.configure()
-    # SCD.configure()
-    # DS.configure()
-    #APDS.getHandle()
+        print("Configuring ALL SENSORS...\n")
+        SHT.configure()
+        APDS.configure()
+        BMP.configure()
+        LSM.configure()
+        SCD.configure()
+        DS.configure()
 
-    # print("Printing the Handles\n")
-    # print_handle()
-    print("Done Configuring sensors...\n")
-    while True:
-        if per.waitForNotifications(1.0):
-            continue
-        
-
-    # except Exception as e:
-    #     print( "Outside Exception Occured",e)            
-
-# a = int(input("HOw many times you want to run the code: "))
-# for i in range(0,a):
-#     # name = input("Write the name")
-#     age = i*100
-#     # some = float(input("Write something in float data type"))
-#     prepare_influx_data(age, i, a)
-# write_influx_data(a)
+        print("Done Configuring sensors...\n")
+        while True:
+            if per.waitForNotifications(1.0):
+                continue
+    except Exception as e:
+        print("Exception: {}".format(e))
+        send_message("Please check Connection! Exception: {}".format(e))
+        break
