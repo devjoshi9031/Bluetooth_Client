@@ -292,38 +292,77 @@ class SCD_service():
 
 class DS_service():  
 
-	DS_PRI_UUID = '8121b46f-56ce-487f-9084-5330700681d5'
+	# DS_PRI_UUID = '8121b46f-56ce-487f-9084-5330700681d5'
 	DS_TEMP_UUID = '2A6E'
 
 	CCCD_UUID = '2902'
 
-	def __init__(self, periph):
+	def __init__(self, periph, UUID):
 		self.per = periph
 		self.ds_svc = None
-		self.ds_temp_chrc = None
-		self.ds_temp_chrc_cccd = 0
-		self.ds_temp_data=0
-		self.ds_temp_is_fresh=False
+		self.ds_temp1_chrc = None
+		self.ds_temp1_chrc_cccd = 0
+		self.ds_temp1_data=0
+		self.ds_temp1_is_fresh=False
+
+		self.ds_temp2_chrc = None
+		self.ds_temp2_chrc_cccd = 0
+		self.ds_temp2_data=0
+		self.ds_temp2_is_fresh=False
+
+		self.ds_temp3_chrc = None
+		self.ds_temp3_chrc_cccd = 0
+		self.ds_temp3_data=0
+		self.ds_temp3_is_fresh=False
+
+		self.ds_temp4_chrc = None
+		self.ds_temp4_chrc_cccd = 0
+		self.ds_temp4_data=0
+		self.ds_temp4_is_fresh=False
+
+		self.ds_temp5_chrc = None
+		self.ds_temp5_chrc_cccd = 0
+		self.ds_temp5_data=0
+		self.ds_temp5_is_fresh=False
+		self.DS_PRI_UUID = UUID
 			
 	def getService(self):
 		self.ds_svc = self.per.getServiceByUUID(self.DS_PRI_UUID)
 	
 	def getCharacteristics(self):
-		self.ds_temp_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[0]
+		self.ds_temp1_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[0]
+		self.ds_temp2_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[1]
+		if(self.ds_temp2_chrc == None):
+			print("Something wrong here!!!")
+		self.ds_temp3_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[2]
+		self.ds_temp4_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[3]
+		self.ds_temp5_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[4]
 			# handle.append(self.sht_temp_chrc.valHandle)
 			
 	def getCCCD(self):
-		self.ds_temp_chrc_cccd = self.ds_temp_chrc.getDescriptors(self.CCCD_UUID)[0]
+		self.ds_temp1_chrc_cccd = self.ds_temp1_chrc.getDescriptors(self.CCCD_UUID)[0]
+		self.ds_temp2_chrc_cccd = self.ds_temp2_chrc.getDescriptors(self.CCCD_UUID)[0]
+		self.ds_temp3_chrc_cccd = self.ds_temp3_chrc.getDescriptors(self.CCCD_UUID)[0]
+		self.ds_temp4_chrc_cccd = self.ds_temp4_chrc.getDescriptors(self.CCCD_UUID)[0]
+		self.ds_temp5_chrc_cccd = self.ds_temp5_chrc.getDescriptors(self.CCCD_UUID)[0]
 
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
 	def enable_notification(self):
-		self.ds_temp_chrc_cccd.write(b"\x01\x00",True)
+		self.ds_temp1_chrc_cccd.write(b"\x01\x00",True)
+		self.ds_temp2_chrc_cccd.write(b"\x01\x00",True)
+		self.ds_temp3_chrc_cccd.write(b"\x01\x00",True)
+		self.ds_temp4_chrc_cccd.write(b"\x01\x00",True)
+		self.ds_temp5_chrc_cccd.write(b"\x01\x00",True)
 	
 			
 	def disable_notification(self):
-		self.ds_temp_chrc_cccd.write(b"\x00\x00",False)
+		self.ds_temp1_chrc_cccd.write(b"\x00\x00",False)
+		self.ds_temp2_chrc_cccd.write(b"\x00\x00",False)
+		self.ds_temp3_chrc_cccd.write(b"\x00\x00",False)
+		self.ds_temp4_chrc_cccd.write(b"\x00\x00",False)
+		self.ds_temp5_chrc_cccd.write(b"\x00\x00",False)
 			
 	def configure(self):
 		self.getService()

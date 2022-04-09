@@ -139,13 +139,21 @@ def prepare_influx_data(_measurement):
             }
         ]
     elif(_measurement=="DS"):
-        DS.ds_temp_is_fresh=False
+        DS.ds_temp1_is_fresh=False
+        DS.ds_temp2_is_fresh=False
+        DS.ds_temp3_is_fresh=False
+        DS.ds_temp4_is_fresh=False
+        DS.ds_temp5_is_fresh=False
         json_body = [
         {
             "measurement": _measurement,
             "time_t":iso,
             "fields": {
-                "Temperature": DS.ds_temp_data,
+                "Temperature1": DS.ds_temp1_data,
+                "Temperature2": DS.ds_temp2_data,
+                "Temperature3": DS.ds_temp3_data,
+                "Temperature4": DS.ds_temp4_data,
+                "Temperature5": DS.ds_temp5_data,
             }
             
             }
@@ -244,53 +252,99 @@ class notifDelegate(DefaultDelegate):
             print("SCD Co2 value: {}".format(dat))
             if(SCD.scd_hum_is_fresh==True and SCD.scd_temp_is_fresh==True):
                 prepare_influx_data("SCD")
+
         elif(cHandle == SCD.scd_temp_chrc.valHandle):
             SCD.scd_temp_is_fresh = True
             SCD.scd_temp_data = dat/100
             print("SCD temp value: {}".format(dat/100))
             if(SCD.scd_co2_is_fresh == True and SCD.scd_hum_is_fresh==True):
                 prepare_influx_data("SCD")
+
         elif(cHandle == SCD.scd_hum_chrc.valHandle):
             SCD.scd_hum_is_fresh=True
             SCD.scd_hum_data = dat/100
             print("SCD temp value: {}".format(dat))
             if(SCD.scd_temp_is_fresh == True and SCD.scd_co2_is_fresh==True):
                 prepare_influx_data("SCD")
-        elif(cHandle == DS.ds_temp_chrc.valHandle):
-            DS.ds_temp_is_fresh=True
-            DS.ds_temp_data = (dat/100)
-            print("DS temp value: {}".format(dat/100))
-            prepare_influx_data("DS")
 
+        elif(cHandle == DS.ds_temp1_chrc.valHandle):
+            DS.ds_temp1_is_fresh=True
+            DS.ds_temp1_data = (dat/100)
+            print("DS temp1: {}".format(dat/100))
+            if(DS.ds_temp2_is_fresh == True and 
+                DS.ds_temp3_is_fresh == True and 
+                DS.ds_temp4_is_fresh == True and 
+                DS.ds_temp5_is_fresh == True):
+                prepare_influx_data("DS")
+
+        elif(cHandle == DS.ds_temp2_chrc.valHandle):
+            DS.ds_temp2_is_fresh=True
+            DS.ds_temp2_data = (dat/100)
+            print("DS temp2: {}".format(dat/100))
+            if(DS.ds_temp1_is_fresh == True and 
+                DS.ds_temp3_is_fresh == True and 
+                DS.ds_temp4_is_fresh == True and 
+                DS.ds_temp5_is_fresh == True):
+                prepare_influx_data("DS")
+
+        elif(cHandle == DS.ds_temp3_chrc.valHandle):
+            DS.ds_temp3_is_fresh=True
+            DS.ds_temp3_data = (dat/100)
+            print("DS temp3: {}".format(dat/100))
+            if(DS.ds_temp1_is_fresh == True and 
+                DS.ds_temp2_is_fresh == True and 
+                DS.ds_temp4_is_fresh == True and 
+                DS.ds_temp5_is_fresh == True):
+                prepare_influx_data("DS")
+
+        elif(cHandle == DS.ds_temp4_chrc.valHandle):
+            DS.ds_temp4_is_fresh=True
+            DS.ds_temp4_data = (dat/100)
+            print("DS temp4: {}".format(dat/100))
+            if(DS.ds_temp1_is_fresh == True and 
+                DS.ds_temp2_is_fresh == True and 
+                DS.ds_temp3_is_fresh == True and 
+                DS.ds_temp5_is_fresh == True):
+                prepare_influx_data("DS")
+
+        elif(cHandle == DS.ds_temp5_chrc.valHandle):
+            DS.ds_temp5_is_fresh
+            DS.ds_temp5_data = (dat/100)
+            print("DS temp5: {}".format(dat/100))
+            if(DS.ds_temp1_is_fresh == True and 
+                DS.ds_temp2_is_fresh == True and 
+                DS.ds_temp3_is_fresh == True and 
+                DS.ds_temp4_is_fresh == True):
+                prepare_influx_data("DS")
     
 
 while(1):
-    try:       
-        per = connect_device(Address)
-        print_svcs(per)
+    # try:       
+    per = connect_device(Address)
+    print_svcs(per)
 
-        print("Enabling ALL SENSORS...\n")
-        SHT = SHT_service(periph=per)
-        APDS = APDS_service(periph=per)
-        BMP = BMP_service(periph=per)
-        LSM = LSM_service(periph=per)
-        SCD = SCD_service(periph=per)
-        DS = DS_service(periph=per)
+    print("Enabling ALL SENSORS...\n")
+    SHT = SHT_service(periph=per)
+    APDS = APDS_service(periph=per)
+    BMP = BMP_service(periph=per)
+    LSM = LSM_service(periph=per)
+    SCD = SCD_service(periph=per)
+    DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5')
 
 
-        print("Configuring ALL SENSORS...\n")
-        SHT.configure()
-        APDS.configure()
-        BMP.configure()
-        LSM.configure()
-        SCD.configure()
-        DS.configure()
+    print("Configuring ALL SENSORS...\n")
+    SHT.configure()
+    APDS.configure()
+    BMP.configure()
+    LSM.configure()
+    SCD.configure()
+    DS.configure()
 
-        print("Done Configuring sensors...\n")
-        while True:
-            if per.waitForNotifications(1.0):
-                continue
-    except Exception as e:
-        print("Exception: {}".format(e))
-        send_message("Please check Connection! Exception: {}".format(e))
-        break
+    print("Done Configuring sensors...\n")
+    while True:
+        if per.waitForNotifications(1.0):
+            continue
+    # except Exception as e:
+    #     print("Exception: {}".format(e))
+    #     send_message("Please check Connection! Exception: {}".format(e))
+    #     break
