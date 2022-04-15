@@ -13,7 +13,7 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 import http.client, urllib
 
-
+# This is the information required for the influx_db setup. Change the name of the bucket if .
 token = "m1gTOsTToWUNZP-CWvZa0vIS5T2o-4_48dvQ8sgw4N-Lk2i5aQnOIBy2ycYwQB57x9Inu-1KQwj17IGUzKL-AA=="
 org = "ciber"
 bucket = "final_test"
@@ -329,7 +329,7 @@ while(1):
     BMP = BMP_service(periph=per)
     LSM = LSM_service(periph=per)
     SCD = SCD_service(periph=per)
-    DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5')
+    # DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5')
 
 
     print("Configuring ALL SENSORS...\n")
@@ -338,7 +338,7 @@ while(1):
     BMP.configure()
     LSM.configure()
     SCD.configure()
-    DS.configure()
+    # DS.configure()
 
     print("Done Configuring sensors...\n")
     while True:
