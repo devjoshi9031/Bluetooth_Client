@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # from Bluetooth_Client.helper import BMP_service, DS_service, LSM_service, SCD_service
 from multiprocessing.spawn import prepare
-from attr import field
+#from attr import field
 from bluepy.btle import *
 import sys
 from helper import *
@@ -12,56 +12,64 @@ from influxdb import InfluxDBClient
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 import http.client, urllib
-
+import time
+import logging as log
 
 token = "m1gTOsTToWUNZP-CWvZa0vIS5T2o-4_48dvQ8sgw4N-Lk2i5aQnOIBy2ycYwQB57x9Inu-1KQwj17IGUzKL-AA=="
 org = "ciber"
 bucket = "final_test"
-
-
 Address = 'cf:d8:b3:75:d1:d5'
 
-'''
-SHT_PRI_UUID = '57812a99-9146-4e72-a4b7-5159632dee90'
-SHT_TEMP_UUID = '0x2A6E'
-SHT_HUM_UUID = '0x2A6F'
-APDS_PRI_UUID = 'ebcc60b7-974c-43e1-a973-426e79f9bc6c'
-APDS_PROX_UUID = '1441e94a-74bc-4412-b45b-f1d91487afe5'
-APDS_RED_UUID = '3c321537-4b8e-4662-93f9-cb7df0e437c5'
-APDS_BLUE_UUID = '3c321537-4b8e-4662-93f9-cb7df0e437c5'
-APDS_GREEN_UUID = '3c321537-4b8e-4662-93f9-cb7df0e437c5'
-APDS_CLEAR_UUID = '3c321537-4b8e-4662-93f9-cb7df0e437c5'
+# Initializing logging info for the log file.
+format = "%(asctime)s.%(msecs)03d: %(message)s"
+log.basicConfig(filename="logfile.log",
+                    filemode="a",
+                    format=format,
+                    level = log.INFO,
+                    datefmt="%H:%M:%S")
 
-BMP_PRIM_UUID = 'f4356abe-b85f-47c7-ab4e-54df8f4ad025'
-BMP_TEMP_UUID = '0x2A6E'
-BMP_HUM_UUID = '0x2A6D'
 
-LSM_PRIM_UUID = 'e82bd800-c62c-43d5-b03f-c7381b38892a'
-LSM_ACCELX_UUID = '461d287d-1ccd-46bf-8498-60139deeeb27'
-LSM_ACCELY_UUID = 'a32f4917-d566-4273-b435-879eb85bd5cd'
-LSM_ACCELZ_UUID = 'e6837dcc-ff0b-4329-a271-c3269c61b10d'
-LSM_GYROX_UUID = '54adba22-25c7-49d2-b4be-dbbb1a77efa3'
-LSM_GYROY_UUID = '67b2890f-e716-45e8-a8fe-4213db675224'
-LSM_GYROZ_UUID = 'af11d0a8-169d-408b-9933-fefd482cdcc6'
 
-SCD_PRIM_UUID = 'fb3047b4-df00-4eb3-9587-3b00e5bb5791'
-SCD_CO2_UUID = 'b82febf7-93f8-93f8-8f52-b4797e33aab1'
-SCD_TEMP_UUID = '0x2A6E'
-SCD_HUM_UUID = '0x2A6F'
 
-DS_UUID = '8121b46f-56ce-487f-9084-5330700681d5'
+#   SHT_PRI_UUID = '57812a99-9146-4e72-a4b7-5159632dee90'
+#   SHT_TEMP_UUID = '0x2A6E'
+#   SHT_HUM_UUID = '0x2A6F'
+#   APDS_PRI_UUID = 'ebcc60b7-974c-43e1-a973-426e79f9bc6c'
+#   APDS_PROX_UUID = '1441e94a-74bc-4412-b45b-f1d91487afe5'
+#   APDS_RED_UUID = '3c321537-4b8e-4662-93f9-cb7df0e437c5'
+#   APDS_BLUE_UUID = '3c321537-4b8e-4662-93f9-cb7df0e437c5'
+#   APDS_GREEN_UUID = '3c321537-4b8e-4662-93f9-cb7df0e437c5'
+#   APDS_CLEAR_UUID = '3c321537-4b8e-4662-93f9-cb7df0e437c5'
+#   
+#   BMP_PRIM_UUID = 'f4356abe-b85f-47c7-ab4e-54df8f4ad025'
+#   BMP_TEMP_UUID = '0x2A6E'
+#   BMP_HUM_UUID = '0x2A6D'
+#   
+#   LSM_PRIM_UUID = 'e82bd800-c62c-43d5-b03f-c7381b38892a'
+#   LSM_ACCELX_UUID = '461d287d-1ccd-46bf-8498-60139deeeb27'
+#   LSM_ACCELY_UUID = 'a32f4917-d566-4273-b435-879eb85bd5cd'
+#   LSM_ACCELZ_UUID = 'e6837dcc-ff0b-4329-a271-c3269c61b10d'
+#   LSM_GYROX_UUID = '54adba22-25c7-49d2-b4be-dbbb1a77efa3'
+#   LSM_GYROY_UUID = '67b2890f-e716-45e8-a8fe-4213db675224'
+#   LSM_GYROZ_UUID = 'af11d0a8-169d-408b-9933-fefd482cdcc6'
+#   
+#   SCD_PRIM_UUID = 'fb3047b4-df00-4eb3-9587-3b00e5bb5791'
+#   SCD_CO2_UUID = 'b82febf7-93f8-93f8-8f52-b4797e33aab1'
+#   SCD_TEMP_UUID = '0x2A6E'
+#   SCD_HUM_UUID = '0x2A6F'
+#   
+#   DS_UUID = '8121b46f-56ce-487f-9084-5330700681d5'
+#   
+#   CCCD_UUID = '2902'
+    
 
-CCCD_UUID = '2902'
-
-Primary_svcs = [SHT_UUID, APDS_UUID, BMP_UUID, LSM_UUID, SCD_UUID, DS_UUID]
-'''
 
 def send_message(_msg):
     conn = http.client.HTTPSConnection("api.pushover.net:443")
     conn.request("POST", "/1/messages.json",
     urllib.parse.urlencode({
         "token": "a8q76apfdh5smhxg6k234yc1djzr8r",
-        "user": "uq19utktqpezbycu36ijf61pmdzzin",
+        "user": "a32wsusbc7ouc64jfuhm8dgqi778js",
         "message": _msg,
     }), { "Content-type": "application/x-www-form-urlencoded" })
     conn.getresponse()
@@ -184,6 +192,9 @@ def connect_device(addr):
     per.setDelegate(notifDelegate())
     print("Successfully Connected to {} device\n".format(addr))
     return per
+
+#def check_services(svs):
+#    if 
 
 class notifDelegate(DefaultDelegate):
     def __init__(self):
@@ -317,34 +328,41 @@ class notifDelegate(DefaultDelegate):
                 DS.ds_temp4_is_fresh == True):
                 prepare_influx_data("DS")
     
-
+counter=0
 while(1):
-    # try:       
-    per = connect_device(Address)
-    print_svcs(per)
+    try:
+        log.debug("Counter: {} Starting taking sensor data".format(counter))
+        per = connect_device(Address)
+        print_svcs(per)
+        
+        log.debug("Enabling ALL SENSORS...\n")
+        SHT = SHT_service(periph=per)
+        APDS = APDS_service(periph=per)
+        BMP = BMP_service(periph=per)
+        LSM = LSM_service(periph=per)
+        SCD = SCD_service(periph=per)
+        DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5')
+        
+        
+        log.debug("Configuring ALL SENSORS...\n")
+        SHT.configure()
+        APDS.configure()
+        BMP.configure()
+        LSM.configure()
+        SCD.configure()
+        DS.configure()
+        
+        log.debug("Done Configuring sensors...\n")
+        while True:
+            if per.waitForNotifications(1.0):
+                continue
 
-    print("Enabling ALL SENSORS...\n")
-    SHT = SHT_service(periph=per)
-    APDS = APDS_service(periph=per)
-    BMP = BMP_service(periph=per)
-    LSM = LSM_service(periph=per)
-    SCD = SCD_service(periph=per)
-    DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5')
-
-
-    print("Configuring ALL SENSORS...\n")
-    SHT.configure()
-    APDS.configure()
-    BMP.configure()
-    LSM.configure()
-    SCD.configure()
-    DS.configure()
-
-    print("Done Configuring sensors...\n")
-    while True:
-        if per.waitForNotifications(1.0):
-            continue
-    # except Exception as e:
-    #     print("Exception: {}".format(e))
-    #     send_message("Please check Connection! Exception: {}".format(e))
-    #     break
+    except Exception as e:
+        per.disconnect()
+        log.error("Exception: {}".format(e))
+        send_message("Exception: {}".format(e))
+        if counter == 15:
+            quit()
+        counter+=1
+        time.sleep(10)
+        #break
