@@ -16,10 +16,10 @@ import http.client, urllib
 # This is the information required for the influx_db setup. Change the name of the bucket if .
 token = "m1gTOsTToWUNZP-CWvZa0vIS5T2o-4_48dvQ8sgw4N-Lk2i5aQnOIBy2ycYwQB57x9Inu-1KQwj17IGUzKL-AA=="
 org = "ciber"
-bucket = "final_test"
+bucket = "final_test_10_mins_delay"
 
 
-Address = 'cf:d8:b3:75:d1:d5'
+Address = 'FC:9A:71:3C:E4:B8'
 
 '''
 SHT_PRI_UUID = '57812a99-9146-4e72-a4b7-5159632dee90'
@@ -329,7 +329,7 @@ while(1):
     BMP = BMP_service(periph=per)
     LSM = LSM_service(periph=per)
     SCD = SCD_service(periph=per)
-    # DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5')
+    DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5')
 
 
     print("Configuring ALL SENSORS...\n")
@@ -338,7 +338,7 @@ while(1):
     BMP.configure()
     LSM.configure()
     SCD.configure()
-    # DS.configure()
+    DS.configure()
 
     print("Done Configuring sensors...\n")
     while True:
