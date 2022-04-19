@@ -1,0 +1,4 @@
+13:43:59.674: MainThread : before creating thread
+13:43:59.676: Hello from the Dev thread
+13:44:05.678: Wait returned with False
+13:44:05.678: MainThread: Thread created successfully
