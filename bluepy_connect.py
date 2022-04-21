@@ -10,7 +10,6 @@ import sys
 import datetime
 
 import http.client, urllib
-import time
 import logging as log
 from influxdb_helper import *
 

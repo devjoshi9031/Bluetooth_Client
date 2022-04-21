@@ -2,3 +2,18 @@
 13:43:59.676: Hello from the Dev thread
 13:44:05.678: Wait returned with False
 13:44:05.678: MainThread: Thread created successfully
+20:25:36.197: Exception: Service 8121b46f-56ce-487f-9084-5330700681d5 not found
+20:25:48.649: Exception: Service 8121b46f-56ce-487f-9084-5330700681d5 not found
+20:26:00.801: Exception: Service 8121b46f-56ce-487f-9084-5330700681d5 not found
+20:26:13.401: Exception: Service 8121b46f-56ce-487f-9084-5330700681d5 not found
+20:26:25.849: Exception: Service 8121b46f-56ce-487f-9084-5330700681d5 not found
+20:26:38.490: Exception: Service 8121b46f-56ce-487f-9084-5330700681d5 not found
+20:27:30.991: Exception: name 'time' is not defined
+20:27:41.941: Exception: Failed to connect to peripheral DE:F7:1D:89:55:D5, addr type: random
+20:28:03.840: Exception: name 'time' is not defined
+20:28:14.841: Exception: Failed to connect to peripheral DE:F7:1D:89:55:D5, addr type: random
+20:28:37.041: Exception: name 'time' is not defined
+20:30:35.942: Exception: name 'DS' is not defined
+20:30:58.691: Exception: name 'DS' is not defined
+20:31:21.141: Exception: name 'DS' is not defined
+20:31:43.492: Exception: name 'DS' is not defined
