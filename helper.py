@@ -1,3 +1,6 @@
+from influxdb_helper import *
+import time
+
 CCCD_UUID = '2902'
         
 '''
@@ -297,72 +300,62 @@ class DS_service():
 
 	CCCD_UUID = '2902'
 
-	def __init__(self, periph, UUID):
+	def __init__(self, periph, UUID,_num_sensors):
 		self.per = periph
 		self.ds_svc = None
-		self.ds_temp1_chrc = None
-		self.ds_temp1_chrc_cccd = 0
-		self.ds_temp1_data=0
-		self.ds_temp1_is_fresh=False
+		self._num_sensors=_num_sensors
+		self.ds_temp_chrcs=[]
+		self.ds_temp_chrc_cccds=[]
+		self.ds_temp_datas=[0]*_num_sensors
+		self.ds_temp_is_fresh=[False]*_num_sensors
 
-		self.ds_temp2_chrc = None
-		self.ds_temp2_chrc_cccd = 0
-		self.ds_temp2_data=0
-		self.ds_temp2_is_fresh=False
-
-		self.ds_temp3_chrc = None
-		self.ds_temp3_chrc_cccd = 0
-		self.ds_temp3_data=0
-		self.ds_temp3_is_fresh=False
-
-		self.ds_temp4_chrc = None
-		self.ds_temp4_chrc_cccd = 0
-		self.ds_temp4_data=0
-		self.ds_temp4_is_fresh=False
-
-		self.ds_temp5_chrc = None
-		self.ds_temp5_chrc_cccd = 0
-		self.ds_temp5_data=0
-		self.ds_temp5_is_fresh=False
 		self.DS_PRI_UUID = UUID
-			
+
 	def getService(self):
 		self.ds_svc = self.per.getServiceByUUID(self.DS_PRI_UUID)
 	
 	def getCharacteristics(self):
-		self.ds_temp1_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[0]
-		self.ds_temp2_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[1]
-		if(self.ds_temp2_chrc == None):
-			print("Something wrong here!!!")
-		self.ds_temp3_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[2]
-		self.ds_temp4_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[3]
-		self.ds_temp5_chrc = self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID)[4]
-			# handle.append(self.sht_temp_chrc.valHandle)
+		for ch in self.ds_svc.getCharacteristics(forUUID=self.DS_TEMP_UUID):
+			self.ds_temp_chrcs.append(ch)
 			
 	def getCCCD(self):
-		self.ds_temp1_chrc_cccd = self.ds_temp1_chrc.getDescriptors(self.CCCD_UUID)[0]
-		self.ds_temp2_chrc_cccd = self.ds_temp2_chrc.getDescriptors(self.CCCD_UUID)[0]
-		self.ds_temp3_chrc_cccd = self.ds_temp3_chrc.getDescriptors(self.CCCD_UUID)[0]
-		self.ds_temp4_chrc_cccd = self.ds_temp4_chrc.getDescriptors(self.CCCD_UUID)[0]
-		self.ds_temp5_chrc_cccd = self.ds_temp5_chrc.getDescriptors(self.CCCD_UUID)[0]
+		for c in self.ds_temp_chrcs:
+			self.ds_temp_chrc_cccds.append(c.getDescriptors(self.CCCD_UUID)[0])
 
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
 	def enable_notification(self):
-		self.ds_temp1_chrc_cccd.write(b"\x01\x00",True)
-		self.ds_temp2_chrc_cccd.write(b"\x01\x00",True)
-		self.ds_temp3_chrc_cccd.write(b"\x01\x00",True)
-		self.ds_temp4_chrc_cccd.write(b"\x01\x00",True)
-		self.ds_temp5_chrc_cccd.write(b"\x01\x00",True)
+		for c in self.ds_temp_chrc_cccds:
+			c.write(b"\x01\x00",True)
+
 	
 			
 	def disable_notification(self):
-		self.ds_temp1_chrc_cccd.write(b"\x00\x00",False)
-		self.ds_temp2_chrc_cccd.write(b"\x00\x00",False)
-		self.ds_temp3_chrc_cccd.write(b"\x00\x00",False)
-		self.ds_temp4_chrc_cccd.write(b"\x00\x00",False)
-		self.ds_temp5_chrc_cccd.write(b"\x00\x00",False)
+		for c in self.ds_temp_chrc_cccds:
+			c.write(b"\x01\x00",False)
+		
+	def prepare_influx_data(self, tag):
+		iso = time.ctime()
+		[False for i in self.ds_temp_is_fresh]
+		json_body = [
+        {
+            "measurement": "DS",
+            "time_t":iso,
+			"tags":{
+				"Board": tag,
+			},
+            "fields": {
+                "Temperature1": self.ds_temp_datas[0],
+                "Temperature2": self.ds_temp_datas[1],
+                "Temperature3": self.ds_temp_datas[2],
+                "Temperature4": self.ds_temp_datas[3],
+                "Temperature5": self.ds_temp_datas[4],
+            }
+            
+            }
+        ]
+		write_influx_data(json_body)
 			
 	def configure(self):
 		self.getService()

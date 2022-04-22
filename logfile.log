@@ -17,3 +17,6 @@
 20:30:58.691: Exception: name 'DS' is not defined
 20:31:21.141: Exception: name 'DS' is not defined
 20:31:43.492: Exception: name 'DS' is not defined
+18:03:57.359: Exception: __init__() missing 1 required positional argument: '_num_sensors'
+18:04:09.708: Exception: __init__() missing 1 required positional argument: '_num_sensors'
+18:04:43.257: Exception: 'Service' object is not iterable
