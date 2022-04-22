@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # from Bluetooth_Client.helper import BMP_service, DS_service, LSM_service, SCD_service
-from multiprocessing.spawn import prepare
-#from attr import field
 from bluepy.btle import *
 import sys
 from helper import *
@@ -102,124 +100,82 @@ class notifDelegate(DefaultDelegate):
             print("SHT_Temp : "+str(dat/100)+ " degrees")
             # Check if the humidity data is fresh. If fresh sent it.
             if(SHT.humisfresh == True):
-                prepare_influx_data("SHT31")
+                SHT.prepare_influx_data("All_Sensors")
+
         elif(cHandle==SHT.sht_hum_chrc.valHandle):
             SHT.humisfresh = True
             SHT.sht_hum_data = dat/100
             print("SHT_Humidity :{} %".format(dat/100))
             if(SHT.tempisfresh == True):
-                prepare_influx_data("SHT31")
+                SHT.prepare_influx_data("All_Sensors")
+
         elif(cHandle==APDS.apds_clear_chrc.valHandle):
             APDS.apds_clear_data = dat
             # Add code to send it to flux
             print("APDS Clear Light: {}".format(dat))    
-            prepare_influx_data("APDS")
+            APDS.prepare_influx_data("All_Sensors")
         
         elif(cHandle==BMP.bmp_temp_chrc.valHandle):
             BMP.tempisfresh=True
             BMP.bmp_temp_data = dat/100
             print("BMP temp: {}".format(dat/100))
             if (BMP.pressisfresh == True):
-                prepare_influx_data("BMP")
+                BMP.prepare_influx_data("All_Sensors")
                
         elif(cHandle==BMP.bmp_press_chrc.valHandle):
             BMP.pressisfresh=True
             BMP.bmp_press_data = dat/100
             print("BMP Pressure: {}".format(dat/100))
             if(BMP.tempisfresh==True):
-                prepare_influx_data("BMP")
+                BMP.prepare_influx_data("All_Sensors")
         
         elif(cHandle == LSM.lsm_accelx_chrc.valHandle):
             LSM.lsm_accelx_is_fresh=True
             LSM.lsm_accelx_data = (dat-32768)/100
             print("LSM AccelX value: {}".format((dat-32768)/100))
             if(LSM.lsm_accely_is_fresh == True and LSM.lsm_accelz_is_fresh==True):
-                prepare_influx_data("LSM")
+                LSM.prepare_influx_data("All_Sensors")
         
         elif(cHandle == LSM.lsm_accely_chrc.valHandle):
             LSM.lsm_accely_is_fresh=True
             LSM.lsm_accely_data = (dat-32768)/100
             print("LSM AccelY value: {}".format((dat-32768)/100))
             if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accelz_is_fresh==True):
-                prepare_influx_data("LSM")
+                LSM.prepare_influx_data("All_Sensors")
             
         elif(cHandle == LSM.lsm_accelz_chrc.valHandle):
             LSM.lsm_accelz_is_fresh=True
             LSM.lsm_accelz_data = (dat-32768)/100
             print("LSM AccelZ value: {}".format((dat-32768)/100))
             if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accely_is_fresh==True):
-                prepare_influx_data("LSM")
+                LSM.prepare_influx_data("All_Sensors")
         
         elif(cHandle == SCD.scd_co2_chrc.valHandle):
             SCD.scd_co2_is_fresh=True
             SCD.scd_co2_data = dat
             print("SCD Co2 value: {}".format(dat))
             if(SCD.scd_hum_is_fresh==True and SCD.scd_temp_is_fresh==True):
-                prepare_influx_data("SCD")
+                SCD.prepare_influx_data("All_Sensors")
 
         elif(cHandle == SCD.scd_temp_chrc.valHandle):
             SCD.scd_temp_is_fresh = True
             SCD.scd_temp_data = dat/100
             print("SCD temp value: {}".format(dat/100))
             if(SCD.scd_co2_is_fresh == True and SCD.scd_hum_is_fresh==True):
-                prepare_influx_data("SCD")
+                SCD.prepare_influx_data("All_Sensors")
 
         elif(cHandle == SCD.scd_hum_chrc.valHandle):
             SCD.scd_hum_is_fresh=True
             SCD.scd_hum_data = dat/100
             print("SCD temp value: {}".format(dat))
             if(SCD.scd_temp_is_fresh == True and SCD.scd_co2_is_fresh==True):
-                prepare_influx_data("SCD")
+                SCD.prepare_influx_data("All_Sensors")
 
-        elif(cHandle == DS.ds_temp1_chrc.valHandle):
-            DS.ds_temp1_is_fresh=True
-            DS.ds_temp1_data = (dat/100)
+        elif(cHandle == DS.ds_temp_chrcs[0].valHandle):
+            DS.ds_temp_is_fresh[0]=True
+            DS.ds_temp_datas[0] = (dat/100)
             print("DS temp1: {}".format(dat/100))
-            if(DS.ds_temp2_is_fresh == True and 
-                DS.ds_temp3_is_fresh == True and 
-                DS.ds_temp4_is_fresh == True and 
-                DS.ds_temp5_is_fresh == True):
-                prepare_influx_data("DS")
-
-        elif(cHandle == DS.ds_temp2_chrc.valHandle):
-            DS.ds_temp2_is_fresh=True
-            DS.ds_temp2_data = (dat/100)
-            print("DS temp2: {}".format(dat/100))
-            if(DS.ds_temp1_is_fresh == True and 
-                DS.ds_temp3_is_fresh == True and 
-                DS.ds_temp4_is_fresh == True and 
-                DS.ds_temp5_is_fresh == True):
-                prepare_influx_data("DS")
-
-        elif(cHandle == DS.ds_temp3_chrc.valHandle):
-            DS.ds_temp3_is_fresh=True
-            DS.ds_temp3_data = (dat/100)
-            print("DS temp3: {}".format(dat/100))
-            if(DS.ds_temp1_is_fresh == True and 
-                DS.ds_temp2_is_fresh == True and 
-                DS.ds_temp4_is_fresh == True and 
-                DS.ds_temp5_is_fresh == True):
-                prepare_influx_data("DS")
-
-        elif(cHandle == DS.ds_temp4_chrc.valHandle):
-            DS.ds_temp4_is_fresh=True
-            DS.ds_temp4_data = (dat/100)
-            print("DS temp4: {}".format(dat/100))
-            if(DS.ds_temp1_is_fresh == True and 
-                DS.ds_temp2_is_fresh == True and 
-                DS.ds_temp3_is_fresh == True and 
-                DS.ds_temp5_is_fresh == True):
-                prepare_influx_data("DS")
-
-        elif(cHandle == DS.ds_temp5_chrc.valHandle):
-            DS.ds_temp5_is_fresh
-            DS.ds_temp5_data = (dat/100)
-            print("DS temp5: {}".format(dat/100))
-            if(DS.ds_temp1_is_fresh == True and 
-                DS.ds_temp2_is_fresh == True and 
-                DS.ds_temp3_is_fresh == True and 
-                DS.ds_temp4_is_fresh == True):
-                prepare_influx_data("DS")
+            DS.prepare_influx_data("All_Sensors")
     
 counter=0
 while(1):
@@ -234,7 +190,7 @@ while(1):
         BMP = BMP_service(periph=per)
         LSM = LSM_service(periph=per)
         SCD = SCD_service(periph=per)
-        DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5', _num_sensors=5)
+        DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5', _num_sensors=1)
         
         
         log.debug("Configuring ALL SENSORS...\n")

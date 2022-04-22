@@ -43,8 +43,8 @@ class SHT_service():
 		self.sht_temp_chrc_cccd = 0
 		self.sht_hum_chrc = None
 		self.sht_hum_chrc_cccd = 0
-		self.tempisfresh = False
-		self.humisfresh = False
+		self.sht_temp_is_fresh = False
+		self.sht_hum_is_fresh = False
 		self.sht_temp_data=0
 		self.sht_hum_data=0
 			
@@ -72,6 +72,26 @@ class SHT_service():
 		self.sht_temp_chrc_cccd.write(b"\x00\x00",False)
 		self.sht_hum_chrc_cccd.write(b"\x00\x00",False)    
 			
+	def prepare_influx_data(self, tag):
+		iso = time.ctime()
+		self.sht_hum_is_fresh=False
+		self.sht_temp_is_fresh=False
+		json_body = [
+		{
+			"measurement": "SHT",
+			"time_t":iso,
+			"tags":{
+				"Board": tag,
+				},
+			"fields": {
+				"Temperature": self.sht_temp_data,
+				"Humidity": self.sht_hum_data,
+				}
+			}
+		]
+		write_influx_data(json_body)
+
+
 	def configure(self):
 		self.getService()
 		self.getCharacteristics()
@@ -115,6 +135,23 @@ class APDS_service():
 		self.getCharacteristics()
 		self.getCCCD()
 		self.enable_notification()
+
+	def prepare_influx_data(self, tag):
+		iso = time.ctime()
+		json_body = [
+		{
+			"measurement": "APDS",
+			"time_t":iso,
+			"tags":{
+				"Board": tag,
+				},
+			"fields": {
+				"Clear_Light": self.apds_clear_data,
+				}
+			}
+		]
+		write_influx_data(json_body)	
+
 	def getHandle(self):
 		print(self.apds_clear_chrc.valHandle)
 			
@@ -168,7 +205,28 @@ class LSM_service():
 		self.lsm_accelx_chrc_cccd.write(b"\x00\x00",False)
 		self.lsm_accely_chrc_cccd.write(b"\x00\x00",False)
 		self.lsm_accelz_chrc_cccd.write(b"\x00\x00",False)
-			
+
+	def prepare_influx_data(self, tag):
+		iso = time.ctime()
+		self.lsm_accelx_is_fresh=False
+		self.lsm_accely_is_fresh=False
+		self.lsm_accelz_is_fresh=False
+		json_body = [
+		{
+			"measurement": "LSM",
+			"time_t":iso,
+			"tags":{
+				"Board": tag,
+				},
+			"fields": {
+				"AccelX": self.lsm_accelx_data,
+				"AccelY": self.lsm_accely_data,
+				"AccelZ": self.lsm_accelz_data,
+				}
+			}
+		]
+		write_influx_data(json_body)	
+				
 	def configure(self):
 		self.getService()
 		self.getCharacteristics()
@@ -195,8 +253,8 @@ class BMP_service():
 		self.bmp_press_chrc_cccd = 0
 		self.bmp_temp_data = 0
 		self.bmp_press_data=0
-		self.tempisfresh = False
-		self.pressisfresh = False
+		self.bmp_temp_is_fresh = False
+		self.bmp_press_is_fresh = False
 		
 	def getService(self):
 		self.bmp_svc = self.per.getServiceByUUID(self.BMP_PRI_UUID)
@@ -223,7 +281,27 @@ class BMP_service():
 	def disable_notification(self):
 		self.bmp_temp_chrc_cccd.write(b"\x00\x00",False)
 		self.bmp_press_chrc_cccd.write(b"\x00\x00",False)    
+
+	def prepare_influx_data(self, tag):
+		iso = time.ctime()
+		self.bmp_temp_is_fresh=False
+		self.bmp_press_is_fresh=False
+		json_body = [
+		{
+			"measurement": "BMP",
+			"time_t":iso,
+			"tags":{
+				"Board": tag,
+				},
+			"fields": {
+				"Temperature": self.bmp_temp_data,
+				"pressure": self.bmp_press_data,
+				}
 			
+			}
+		]
+		write_influx_data(json_body)
+
 	def configure(self):
 		self.getService()
 		self.getCharacteristics()
@@ -283,6 +361,28 @@ class SCD_service():
 		self.scd_temp_chrc_cccd.write(b"\x00\x00",False)
 		self.scd_hum_chrc_cccd.write(b"\x00\x00",False) 
 		self.scd_co2_chrc_cccd.write(b"\x00\x00", False)   
+
+	def prepare_influx_data(self, tag):
+		iso = time.ctime()
+		self.scd_co2_is_fresh=False
+		self.scd_temp_is_fresh=False
+		self.scd_hum_is_fresh=False
+		json_body = [
+        {
+            "measurement": "SCD",
+            "time_t":iso,
+			"tags":{
+				"Board": tag,
+				},
+            "fields": {
+                "Temperature": self.scd_temp_data,
+				"Humidity": self.scd_hum_data,
+				"Gas": self.scd_co2_data,
+            	}
+            
+            }
+        ]
+		write_influx_data(json_body)
 			
 	def configure(self):
 		self.getService()
@@ -344,14 +444,14 @@ class DS_service():
             "time_t":iso,
 			"tags":{
 				"Board": tag,
-			},
+				},
             "fields": {
                 "Temperature1": self.ds_temp_datas[0],
                 "Temperature2": self.ds_temp_datas[1],
                 "Temperature3": self.ds_temp_datas[2],
                 "Temperature4": self.ds_temp_datas[3],
                 "Temperature5": self.ds_temp_datas[4],
-            }
+            	}
             
             }
         ]
