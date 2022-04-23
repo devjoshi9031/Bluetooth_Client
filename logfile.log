@@ -20,3 +20,9 @@
 18:03:57.359: Exception: __init__() missing 1 required positional argument: '_num_sensors'
 18:04:09.708: Exception: __init__() missing 1 required positional argument: '_num_sensors'
 18:04:43.257: Exception: 'Service' object is not iterable
+19:31:04.691: Exception: Device disconnected
+19:31:14.741: Exception: __init__() got an unexpected keyword argument '_num_sensors'
+19:31:28.640: Exception: __init__() got an unexpected keyword argument '_num_sensors'
+19:31:42.588: Exception: __init__() got an unexpected keyword argument '_num_sensors'
+19:31:56.138: Exception: __init__() got an unexpected keyword argument '_num_sensors'
+19:32:09.639: Exception: __init__() got an unexpected keyword argument '_num_sensors'

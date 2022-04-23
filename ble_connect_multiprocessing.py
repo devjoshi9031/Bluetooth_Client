@@ -71,40 +71,63 @@ class notifDelegate_DS_Board(DefaultDelegate):
 
 
 
-class notifDelegate_All_Board(DefaultDelegate):
-    def __init__(self):
-        DefaultDelegate.__init__(self)
+# class notifDelegate_All_Board(DefaultDelegate):
+#     def __init__(self):
+#         DefaultDelegate.__init__(self)
         
-    def handleNotification(self, cHandle, data):
-        print(data)
+#     def handleNotification(self, cHandle, data):
+#         print(data)
 
 
 def thread1(index):
-    peripheral = connect_device(mac_address[index])
-    print_svcs(peripheral)
-    SHT = SHT_service(periph=peripheral)
-    APDS = APDS_service(periph=peripheral)
-    BMP = BMP_service(periph=peripheral)
-    LSM = LSM_service(periph=peripheral)
-    SCD = SCD_service(periph=peripheral)
-    DS = DS_service(periph=peripheral, UUID='8121b46f-56ce-487f-9084-5330700681d5', _num_sensors=1)
+    global first_pass
+    first_pass = True
+    while(1):
+        try:
+            if first_pass:
+                print("Thread 1: Making all board class")
+                all_board_sensor_class = All_Board_Sensor(Address=mac_address[index])
+                all_board_sensor_class.configure_all_sensors()
+                all_board_sensor_class.print_svcs()
+                all_board_sensor_class.enable_notifications()
 
-    SHT.configure()
-    APDS.configure()
-    BMP.configure()
-    LSM.configure()
-    SCD.configure()
-    DS.configure()
-    while True:
-        if peripheral.waitForNotifications(1.0):
-            continue
+                # peripheral = connect_device(mac_address[index])
+                # print_svcs(peripheral)
+                # SHT = SHT_service(periph=peripheral)
+                # APDS = APDS_service(periph=peripheral)
+                # BMP = BMP_service(periph=peripheral)
+                # LSM = LSM_service(periph=peripheral)
+                # SCD = SCD_service(periph=peripheral)
+                # DS = DS_service(periph=peripheral, UUID='8121b46f-56ce-487f-9084-5330700681d5', _num_sensors=1)
+
+                # SHT.configure()
+                # APDS.configure()
+                # BMP.configure()
+                # LSM.configure()
+                # SCD.configure()
+                # DS.configure()
+            else:
+                print("Trying to reconnect!!!")
+                all_board_sensor_class.per = all_board_sensor_class.connect_peripheral(mac_address[index])
+                print("Before enable notifications!!!")
+                all_board_sensor_class.enable_notifications(all_board_sensor_class.per)
+
+            while True:
+                if all_board_sensor_class.per.waitForNotifications(1.0):
+                    continue
+        except Exception as e:
+            print("Exception: {}".format(e))
+            # all_board_sensor_class.disable_notifications()
+            first_pass=False
+            all_board_sensor_class.disconnect_peripheral()
+
 
 def thread2(index):
-    t.sleep(2)
+    t.sleep(10)
     peripheral = connect_device(mac_address[index])
     print_svcs(peripheral)
     global DS_SENSOR_DS
-    DS_SENSOR_DS = DS_service(periph=peripheral, UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', _num_sensors=5)
+    DS_SENSOR_DS = DS_service(periph=peripheral, UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', num_sensors=5)
     DS_SENSOR_DS.configure()
     while True:
         if peripheral.waitForNotifications(1.0):
@@ -116,9 +139,9 @@ if __name__ == "__main__":
     proc_list.append(mp.Process(target=thread1, name="All_Sensor_Board", args=(1,)))
     proc_list.append(mp.Process(target=thread2, name="DS_Sensor_Board", args=(0,)))
     proc_list[0].start()
-    proc_list[1].start()
+    # proc_list[1].start()
     proc_list[0].join()
-    proc_list[1].join()
+    # proc_list[1].join()
 
 
 
