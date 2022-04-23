@@ -65,7 +65,7 @@ class SHT_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
-	def enable_notification(self):
+	def _enable_notification(self):
 		self.sht_temp_chrc_cccd.write(b"\x01\x00",True)
 		self.sht_hum_chrc_cccd.write(b"\x01\x00",True)
 	
@@ -98,6 +98,7 @@ class SHT_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
+		self._enable_notification()
 	
 	
 	def enable_notification(self, per):
@@ -129,7 +130,7 @@ class APDS_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
         
-	def enable_notification(self):
+	def _enable_notification(self):
 		self.apds_clear_chrc_cccd.write(b"\x01\x00",True)
         
                 
@@ -140,6 +141,7 @@ class APDS_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
+		self._enable_notification()
 	
 	def enable_notification(self, per):
 		self.per=per
@@ -204,7 +206,7 @@ class LSM_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
         
-	def enable_notification(self):
+	def _enable_notification(self):
 		self.lsm_accelx_chrc_cccd.write(b"\x01\x00",True)
 		self.lsm_accely_chrc_cccd.write(b"\x01\x00",True)
 		self.lsm_accelz_chrc_cccd.write(b"\x01\x00",True)
@@ -240,6 +242,7 @@ class LSM_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
+		self._enable_notification()
 	
 	def enable_notification(self, per):
 		self.per=per
@@ -287,7 +290,7 @@ class BMP_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
-	def enable_notification(self):
+	def _enable_notification(self):
 		self.bmp_temp_chrc_cccd.write(b"\x01\x00",True)
 		self.bmp_press_chrc_cccd.write(b"\x01\x00",True)
 
@@ -320,6 +323,7 @@ class BMP_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
+		self._enable_notification()
 	
 	def enable_notification(self, per):
 		self.per = per
@@ -368,7 +372,7 @@ class SCD_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
-	def enable_notification(self):
+	def _enable_notification(self):
 		self.scd_temp_chrc_cccd.write(b"\x01\x00",True)
 		self.scd_hum_chrc_cccd.write(b"\x01\x00",True)
 		self.scd_co2_chrc_cccd.write(b"\x01\x00", True)
@@ -405,6 +409,7 @@ class SCD_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
+		self._enable_notification()
 	
 	def enable_notification(self, per):
 		self.per = per
@@ -445,7 +450,7 @@ class DS_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
-	def enable_notification(self):
+	def _enable_notification(self):
 		for c in self.ds_temp_chrc_cccds:
 			c.write(b"\x01\x00",True)
 
@@ -496,6 +501,7 @@ class DS_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
+		self._enable_notification()
 		
 	def enable_notification(self, per):
 		self.per = per
@@ -554,96 +560,7 @@ class All_Board_Sensor():
 
 
 	# Class' notification delegate to call this everytime we get a notification for this peripheral
-	class notifDelegate(DefaultDelegate):
-		def __init__(self, outer):
-			DefaultDelegate.__init__(self)
-			self.outer=outer
-			
-		def handleNotification(self, cHandle, data):
-			dat=int.from_bytes(data, byteorder=sys.byteorder)
-			if(cHandle==self.outer.SHT.sht_temp_chrc.valHandle):
-				self.outer.SHT.sht_temp_is_fresh = True
-				# Make something here to make sure that this is a fresh data
-				self.outer.SHT.sht_temp_data = dat/100
-				print("SHT_Temp : "+str(dat/100)+ " degrees")
-				# Check if the humidity data is fresh. If fresh sent it.
-				if(self.outer.SHT.sht_hum_is_fresh == True):
-					self.outer.SHT.prepare_influx_data("All_Sensors")
-
-			elif(cHandle==self.outer.SHT.sht_hum_chrc.valHandle):
-				self.outer.SHT.sht_hum_is_fresh = True
-				self.outer.SHT.sht_hum_data = dat/100
-				print("SHT_Humidity :{} %".format(dat/100))
-				if(self.outer.SHT.sht_temp_is_fresh == True):
-					self.outer.SHT.prepare_influx_data("All_Sensors")
-
-			elif(cHandle==self.outer.APDS.apds_clear_chrc.valHandle):
-				self.outer.APDS.apds_clear_data = dat
-				# Add code to send it to flux
-				print("APDS Clear Light: {}".format(dat))    
-				self.outer.APDS.prepare_influx_data("All_Sensors")
-			
-			elif(cHandle==self.outer.BMP.bmp_temp_chrc.valHandle):
-				self.outer.BMP.bmp_temp_is_fresh=True
-				self.outer.BMP.bmp_temp_data = dat/100
-				print("BMP temp: {}".format(dat/100))
-				if (self.outer.BMP.bmp_press_is_fresh == True):
-					self.outer.BMP.prepare_influx_data("All_Sensors")
-				
-			elif(cHandle==self.outer.BMP.bmp_press_chrc.valHandle):
-				self.outer.BMP.bmp_press_is_fresh=True
-				self.outer.BMP.bmp_press_data = dat/100
-				print("BMP Pressure: {}".format(dat/100))
-				if(self.outer.BMP.bmp_temp_is_fresh==True):
-					self.outer.BMP.prepare_influx_data("All_Sensors")
-			
-			elif(cHandle == self.outer.LSM.lsm_accelx_chrc.valHandle):
-				self.outer.LSM.lsm_accelx_is_fresh=True
-				self.outer.LSM.lsm_accelx_data = (dat-32768)/100
-				print("LSM AccelX value: {}".format((dat-32768)/100))
-				if(self.outer.LSM.lsm_accely_is_fresh == True and self.outer.LSM.lsm_accelz_is_fresh==True):
-					self.outer.LSM.prepare_influx_data("All_Sensors")
-			
-			elif(cHandle == self.outer.LSM.lsm_accely_chrc.valHandle):
-				self.outer.LSM.lsm_accely_is_fresh=True
-				self.outer.LSM.lsm_accely_data = (dat-32768)/100
-				print("LSM AccelY value: {}".format((dat-32768)/100))
-				if(self.outer.LSM.lsm_accelx_is_fresh == True and self.outer.LSM.lsm_accelz_is_fresh==True):
-					self.outer.LSM.prepare_influx_data("All_Sensors")
-				
-			elif(cHandle == self.outer.LSM.lsm_accelz_chrc.valHandle):
-				self.outer.LSM.lsm_accelz_is_fresh=True
-				self.outer.LSM.lsm_accelz_data = (dat-32768)/100
-				print("LSM AccelZ value: {}".format((dat-32768)/100))
-				if(self.outer.LSM.lsm_accelx_is_fresh == True and self.outer.LSM.lsm_accely_is_fresh==True):
-					self.outer.LSM.prepare_influx_data("All_Sensors")
-			
-			elif(cHandle == self.outer.SCD.scd_co2_chrc.valHandle):
-				self.outer.SCD.scd_co2_is_fresh=True
-				self.outer.SCD.scd_co2_data = dat
-				print("SCD Co2 value: {}".format(dat))
-				if(self.outer.SCD.scd_sht_hum_is_fresh==True and self.outer.SCD.scd_temp_is_fresh==True):
-					self.outer.SCD.prepare_influx_data("All_Sensors")
-
-			elif(cHandle == self.outer.SCD.scd_temp_chrc.valHandle):
-				self.outer.SCD.scd_temp_is_fresh = True
-				self.outer.SCD.scd_temp_data = dat/100
-				print("SCD temp value: {}".format(dat/100))
-				if(self.outer.SCD.scd_co2_is_fresh == True and self.outer.SCD.scd_sht_hum_is_fresh==True):
-					self.outer.SCD.prepare_influx_data("All_Sensors")
-
-			elif(cHandle == self.outer.SCD.scd_hum_chrc.valHandle):
-				self.outer.SCD.scd_sht_hum_is_fresh=True
-				self.outer.SCD.scd_hum_data = dat/100
-				print("SCD temp value: {}".format(dat))
-				if(self.outer.SCD.scd_temp_is_fresh == True and self.outer.SCD.scd_co2_is_fresh==True):
-					self.outer.SCD.prepare_influx_data("All_Sensors")
-
-			elif(cHandle == self.outer.DS.ds_temp_chrcs[0].valHandle):
-				self.outer.DS.ds_temp_is_fresh[0]=True
-				self.outer.DS.ds_temp_datas[0] = (dat/100)
-				print("DS temp1: {}".format(dat/100))
-				self.outer.DS.prepare_influx_data("All_Sensors")
+	
 
 	def connect_peripheral(self, Address):
 		print("All Board Sensor Class connecting to device {}...".format(Address))

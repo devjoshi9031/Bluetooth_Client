@@ -190,7 +190,7 @@ while(1):
         BMP = BMP_service(periph=per)
         LSM = LSM_service(periph=per)
         SCD = SCD_service(periph=per)
-        DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5', _num_sensors=1)
+        DS = DS_service(periph=per, UUID='8121b46f-56ce-487f-9084-5330700681d5', num_sensors=1)
         
         
         log.debug("Configuring ALL SENSORS...\n")
