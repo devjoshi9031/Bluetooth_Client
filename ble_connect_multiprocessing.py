@@ -24,6 +24,17 @@ def connect_device(addr):
     print("Successfully Connected to {} device\n".format(addr))
     return per
 
+
+def send_message(_msg):
+    conn = http.client.HTTPSConnection("api.pushover.net:443")
+    conn.request("POST", "/1/messages.json",
+    urllib.parse.urlencode({
+        "token": "a32wsusbc7ouc64jfuhm8dgqi778js",
+        "user": "uq19utktqpezbycu36ijf61pmdzzin",
+        "message": _msg,
+    }), { "Content-type": "application/x-www-form-urlencoded" })
+    conn.getresponse()
+
 class notifDelegate_All_Board(DefaultDelegate):
 		def __init__(self):
 			DefaultDelegate.__init__(self)
@@ -158,15 +169,6 @@ class notifDelegate_DS_Board(DefaultDelegate):
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
-def send_message(_msg):
-    conn = http.client.HTTPSConnection("api.pushover.net:443")
-    conn.request("POST", "/1/messages.json",
-    urllib.parse.urlencode({
-        "token": "a8q76apfdh5smhxg6k234yc1djzr8r",
-        "user": "a32wsusbc7ouc64jfuhm8dgqi778js",
-        "message": _msg,
-    }), { "Content-type": "application/x-www-form-urlencoded" })
-    conn.getresponse()
 
 def thread1(index):
     while(True):
