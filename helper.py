@@ -1,44 +1,46 @@
-from ast import Add
 from influxdb_helper import *
 import time
 from bluepy.btle import *
-
-CCCD_UUID = '2902'
         
-'''
-handle[0] = sht_temp
-handle[1] = sht_hum
-handle[2] = apds_prox
-handle[3] = apds_red
-handle[4] = apds_blue
-handle[5] = apds_green
-handle[6] = apds_clear
-handle[7] = lsm_accel_x
-handle[8] = lsm_accel_y
-handle[9] = lsm_accel_z
-handle[10] = lsm_gyrox
-handle[11] = lsm_gyroy
-handle[12] = lsm_gyroz
-handle[13] = scd_co2
-handle[14] = scd_temp
-handle[15] = scd_hum
-handle[16] = ds_temp
-
-'''
-handle = []
-
-def print_handle():
-	print("Inside print handle method\n")
-	for i in handle:
-		print(i) 
 
 class SHT_service():      
-	SHT_PRI_UUID = '57812a99-9146-4e72-a4b7-5159632dee90'
+	'''
+	Class for SHT31 Sensor on Adafruit Feather sense
+
+	This class will be used for the SHT31 sensor on the adafruit feather sense board.
+	It will match the UUID given in the primary service list and also get all the charac
+	in that service. 
+
+	Members:
+		SHT_PRI_UUID -> UUID for the primary service.\n
+		self.per -> copy of the peripheral class that we get from BTLE(This will be given while instantiating this class.)\n
+		self.sht_temp_chrc ->temperature characteristic.\n
+		self.sht_temp_chrc_cccd -> Client Characterstic Configuration Descriptor for temp. chrc.\n
+		self.sht_hum_chrc -> Humidity Characteristic \n
+		self.sht_hum_chrc_ccd -> Client Characterstic Configuration Descriptor for hum. chrc.\n
+		self.sht_temp_data -> Temperature characteristic data. \n
+		self.sht_temp_is_fresh -> Current temp. chrc. value is fresh or not?\n
+		self.sht_hum_data -> Humidity characteristic data.\n
+		self.sht_hum_is_fresh -> Current hum. chrc. value is fresh or not?\n
+
+	Methods:
+		getService -> Get the primary service from the given peripheral. \n
+		getCharacteristics -> Get the temp & hum. characteristics from the primary service.\n
+		getCCCD -> Get the Client Characteristic Configuration Descriptors. \n
+		enable_notification -> enable notifications for all chrcs.\n
+		disable_notification -> disable notification for all chrcs.\n
+		prepare_influx_data -> Once we have fresh data for all chrcs. prepare the data 
+								in appropriate json format and send it to influxDB.\n
+		configure -> Call all the above methods in proper sequence.\n
+	'''
+
 	SHT_TEMP_UUID = '2A6E'
 	SHT_HUM_UUID = '2A6F'  
 	CCCD_UUID = '2902'
 	
-	def __init__(self, periph):
+	# UUID is optional but given this field just in case we need to use this for another board.
+	def __init__(self, periph, UUID='57812a99-9146-4e72-a4b7-5159632dee90'):
+		self.SHT_PRI_UUID=UUID
 		self.per = periph
 		self.sht_svc = None
 		self.sht_temp_chrc = None
@@ -55,17 +57,16 @@ class SHT_service():
 	
 	def getCharacteristics(self):
 		self.sht_temp_chrc = self.sht_svc.getCharacteristics(forUUID=self.SHT_TEMP_UUID)[0]
-		handle.append(self.sht_temp_chrc.valHandle)
 		self.sht_hum_chrc = self.sht_svc.getCharacteristics(forUUID=self.SHT_HUM_UUID)[0]
-		handle.append(self.sht_hum_chrc.valHandle)
 			
 	def getCCCD(self):
 		self.sht_temp_chrc_cccd = self.sht_temp_chrc.getDescriptors(self.CCCD_UUID)[0]
 		self.sht_hum_chrc_cccd = self.sht_hum_chrc.getDescriptors(self.CCCD_UUID)[0]
+		
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
-	def _enable_notification(self):
+	def enable_notification(self):
 		self.sht_temp_chrc_cccd.write(b"\x01\x00",True)
 		self.sht_hum_chrc_cccd.write(b"\x01\x00",True)
 	
@@ -98,20 +99,40 @@ class SHT_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
-		self._enable_notification()
-	
-	
-	def enable_notification(self, per):
-		self.per=per
 		self.enable_notification()
 
 
 class APDS_service():
-	APDS_PRI_UUID = 'ebcc60b7-974c-43e1-a973-426e79f9bc6c'
-	APDS_CLEAR_UUID = 'e960c9b7-e0ed-441e-b22c-d93252fa0fc6'
+	'''
+	Class for APDS9960 Sensor on Adafruit Feather sense
+
+	This class will be used for the APDS9960 sensor on the adafruit feather sense board.
+	It will match the UUID given in the primary service list and also get all the charac
+	in that service. 
+
+	Members:
+		self.APDS_PRI_UUID -> UUID for the primary service.\n
+		self.per -> copy of the peripheral class that we get from BTLE(This will be given while instantiating this class.)\n
+		self.apds_clear_chrc ->Clear light characteristic.\n
+		self.apds_clear_chrc_cccd -> Client Characterstic Configuration Descriptor for clear_light. chrc.\n
+		self.apds_clear_data -> Clear Light characteristic data. \n
+
+	Methods:
+		getService -> Get the primary service from the given peripheral. \n
+		getCharacteristics -> Get the temp & hum. characteristics from the primary service.\n
+		getCCCD -> Get the Client Characteristic Configuration Descriptors. \n
+		enable_notification -> enable notifications for all chrcs.\n
+		disable_notification -> disable notification for all chrcs.\n
+		prepare_influx_data -> Once we have fresh data for all chrcs. prepare the data 
+								in appropriate json format and send it to influxDB.\n
+		configure -> Call all the above methods in proper sequence.\n
+	'''
+
 	CCCD_UUID = '2902'
 	
-	def __init__(self, periph):
+	def __init__(self, periph, UUID='ebcc60b7-974c-43e1-a973-426e79f9bc6c', clearUUID='e960c9b7-e0ed-441e-b22c-d93252fa0fc6'):
+		self.APDS_PRI_UUID=UUID
+		self.APDS_CLEAR_UUID=clearUUID
 		self.per = periph
 		self.apds_svc = None
 		self.apds_clear_chrc = None
@@ -130,23 +151,12 @@ class APDS_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
         
-	def _enable_notification(self):
+	def enable_notification(self):
 		self.apds_clear_chrc_cccd.write(b"\x01\x00",True)
-        
                 
 	def disable_notification(self):  
 		self.apds_clear_chrc_cccd.write(b"\x01\x00",False)
-                
-	def configure(self):
-		self.getService()
-		self.getCharacteristics()
-		self.getCCCD()
-		self._enable_notification()
 	
-	def enable_notification(self, per):
-		self.per=per
-		self._enable_notification()
-
 	def prepare_influx_data(self, tag):
 		iso = time.ctime()
 		json_body = [
@@ -163,18 +173,63 @@ class APDS_service():
 		]
 		write_influx_data(json_body)	
 
-	def getHandle(self):
-		print(self.apds_clear_chrc.valHandle)
-			
+	def configure(self):
+		self.getService()
+		self.getCharacteristics()
+		self.getCCCD()
+		self.enable_notification()
+
+
 	
 class LSM_service():
-	LSM_PRIM_UUID = 'e82bd800-c62c-43d5-b03f-c7381b38892a'
-	LSM_ACCELX_UUID = '461d287d-1ccd-46bf-8498-60139deeeb27'
-	LSM_ACCELY_UUID = 'a32f4917-d566-4273-b435-879eb85bd5cd'
-	LSM_ACCELZ_UUID = 'e6837dcc-ff0b-4329-a271-c3269c61b10d'
+	'''
+	Class for LSM6DS33 Sensor on Adafruit Feather sense
+
+	This class will be used for the LSM6DS33 sensor on the adafruit feather sense board.
+	It will match the UUID given in the primary service list and also get all the charac
+	in that service. 
+
+	Members:
+		LSM_PRI_UUID -> UUID for the primary service.\n
+		self.per -> copy of the peripheral class that we get from BTLE(This will be given while instantiating this class.)\n
+		self.lsm_accelx_chrc ->Accelerometer X-axis characteristic.\n
+		self.ksm_accelx_chrc_cccd -> Client Characterstic Configuration Descriptor for accelx chrc.\n
+		self.lsm_accely_chrc ->Accelerometer Y-axis characteristic.\n
+		self.ksm_accely_chrc_cccd -> Client Characterstic Configuration Descriptor for accely chrc.\n
+		self.lsm_accelz_chrc ->Accelerometer Z-axis characteristic.\n
+		self.ksm_accelz_chrc_cccd -> Client Characterstic Configuration Descriptor for accelz chrc.\n
+		self.accelx_data -> Accelerometer X-axis characteristic data. \n
+		self.accelx_is_fresh -> Current accelx chrc. value is fresh or not?\n
+		self.accely_data -> Accelerometer Y-axis characteristic data. \n
+		self.accely_is_fresh -> Current accely chrc. value is fresh or not?\n
+		self.accelz_data -> Accelerometer Z-axis characteristic data. \n
+		self.accelz_is_fresh -> Current accelz chrc. value is fresh or not?\n
+
+	Methods:
+		getService -> Get the primary service from the given peripheral. \n
+		getCharacteristics -> Get the temp & hum. characteristics from the primary service.\n
+		getCCCD -> Get the Client Characteristic Configuration Descriptors. \n
+		enable_notification -> enable notifications for all chrcs.\n
+		disable_notification -> disable notification for all chrcs.\n
+		prepare_influx_data -> Once we have fresh data for all chrcs. prepare the data 
+								in appropriate json format and send it to influxDB.\n
+		configure -> Call all the above methods in proper sequence.\n
+	'''
+
+	# LSM_PRIM_UUID = 'e82bd800-c62c-43d5-b03f-c7381b38892a'
+	# LSM_ACCELX_UUID = '461d287d-1ccd-46bf-8498-60139deeeb27'
+	# LSM_ACCELY_UUID = 'a32f4917-d566-4273-b435-879eb85bd5cd'
+	# LSM_ACCELZ_UUID = 'e6837dcc-ff0b-4329-a271-c3269c61b10d'
 	CCCD_UUID = '2902'
 	
-	def __init__(self, periph):
+	def __init__(self, periph, UUID='e82bd800-c62c-43d5-b03f-c7381b38892a',
+								ACCELX_UUID='461d287d-1ccd-46bf-8498-60139deeeb27',
+								ACCELY_UUID='a32f4917-d566-4273-b435-879eb85bd5cd',
+								ACCELZ_UUID='e6837dcc-ff0b-4329-a271-c3269c61b10d'):
+		self.LSM_PRIM_UUID = UUID
+		self.LSM_ACCELX_UUID=ACCELX_UUID
+		self.LSM_ACCELY_UUID=ACCELY_UUID
+		self.LSM_ACCELZ_UUID=ACCELZ_UUID
 		self.per = periph
 		self.lsm_svc = None
 		self.lsm_accelx_chrc = None
@@ -206,7 +261,7 @@ class LSM_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
         
-	def _enable_notification(self):
+	def enable_notification(self):
 		self.lsm_accelx_chrc_cccd.write(b"\x01\x00",True)
 		self.lsm_accely_chrc_cccd.write(b"\x01\x00",True)
 		self.lsm_accelz_chrc_cccd.write(b"\x01\x00",True)
@@ -242,26 +297,46 @@ class LSM_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
-		self._enable_notification()
-	
-	def enable_notification(self, per):
-		self.per=per
-		self._enable_notification()
+		self.enable_notification()
 
 
-	def getHandle(self):
-		print(self.lsm_accelx_chrc.valHandle)
-		print(self.lsm_accely_chrc.valHandle)
-		print(self.lsm_accelz_chrc.valHandle)
+class BMP_service():   
+	'''
+	Class for BMP280 Sensor on Adafruit Feather sense
 
+	This class will be used for the BMP280 sensor on the adafruit feather sense board.
+	It will match the UUID given in the primary service list and also get all the charac
+	in that service. 
 
-class BMP_service():      
-	BMP_PRI_UUID = 'f4356abe-b85f-47c7-ab4e-54df8f4ad025'
+	Members:
+		BMP_PRI_UUID -> UUID for the primary service.\n
+		self.per -> copy of the peripheral class that we get from BTLE(This will be given while instantiating this class.)\n
+		self.bmp_temp_chrc ->temperature characteristic.\n
+		self.bmp_temp_chrc_cccd -> Client Characterstic Configuration Descriptor for temp. chrc.\n
+		self.sht_press_chrc -> Pressure Characteristic \n
+		self.sht_press_chrc_ccd -> Client Characterstic Configuration Descriptor for press. chrc.\n
+		self.bmp_temp_data -> Temperature characteristic data. \n
+		self.bmp_temp_is_fresh -> Current temp. chrc. value is fresh or not?\n
+		self.bmp_press_data -> Pressure characteristic data.\n
+		self.bmp_press_is_fresh -> Current press. chrc. value is fresh or not?\n
+
+	Methods:
+		getService -> Get the primary service from the given peripheral. \n
+		getCharacteristics -> Get the temp & hum. characteristics from the primary service.\n
+		getCCCD -> Get the Client Characteristic Configuration Descriptors. \n
+		enable_notification -> enable notifications for all chrcs.\n
+		disable_notification -> disable notification for all chrcs.\n
+		prepare_influx_data -> Once we have fresh data for all chrcs. prepare the data 
+								in appropriate json format and send it to influxDB.\n
+		configure -> Call all the above methods in proper sequence.\n
+	'''	   
+	# BMP_PRI_UUID = 'f4356abe-b85f-47c7-ab4e-54df8f4ad025'
 	BMP_TEMP_UUID = '2A6E'
 	BMP_PRESS_UUID = '2A6D'  
 	CCCD_UUID = '2902'
 
-	def __init__(self, periph):
+	def __init__(self, periph, UUID='f4356abe-b85f-47c7-ab4e-54df8f4ad025'):
+		self.BMP_PRI_UUID=UUID
 		self.per = periph
 		self.bmp_svc = None
 		self.bmp_temp_chrc = None
@@ -290,7 +365,7 @@ class BMP_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
-	def _enable_notification(self):
+	def enable_notification(self):
 		self.bmp_temp_chrc_cccd.write(b"\x01\x00",True)
 		self.bmp_press_chrc_cccd.write(b"\x01\x00",True)
 
@@ -323,22 +398,54 @@ class BMP_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
-		self._enable_notification()
-	
-	def enable_notification(self, per):
-		self.per = per
-		self._enable_notification()
+		self.enable_notification()
 
 
-class SCD_service():  
+class SCD_service(): 
+	'''
+	Class for SCD41 Sensor on Adafruit Feather sense
 
-	SCD_PRI_UUID = 'fb3047b4-df00-4eb3-9587-3b00e5bb5791'
-	SCD_CO2_UUID = 'b82febf7-93f8-93f8-8f52-b4797e33aab1'
+	This class will be used for the SCD41 sensor on the adafruit feather sense board.
+	It will match the UUID given in the primary service list and also get all the charac
+	in that service. 
+
+	Members:
+		BMP_PRI_UUID -> UUID for the primary service.\n
+		self.per -> copy of the peripheral class that we get from BTLE(This will be given while instantiating this class.)\n
+		self.scd_temp_chrc ->temperature characteristic.\n
+		self.scd_temp_chrc_cccd -> Client Characterstic Configuration Descriptor for temp. chrc.\n
+		self.scd_co2_chrc -> CO2 Characteristic \n
+		self.scd_co2_chrc_ccd -> Client Characterstic Configuration Descriptor for CO2. chrc.\n
+		self.scd_hum_chrc -> Humidity Characteristic \n
+		self.scd_hum_chrc_ccd -> Client Characterstic Configuration Descriptor for hum. chrc.\n
+		self.scd_temp_data -> Temperature characteristic data. \n
+		self.scd_temp_is_fresh -> Current temp. chrc. value is fresh or not?\n
+		self.scd_co2_data -> CO2 characteristic data.\n
+		self.scd_co2_is_fresh -> Current CO2 chrc. value is fresh or not?\n
+		self.scd_hum_data -> Hum characteristic data.\n
+		self.scd_hum_is_fresh -> Current hum chrc. value is fresh or not?\n
+
+	Methods:
+		getService -> Get the primary service from the given peripheral. \n
+		getCharacteristics -> Get the temp & hum. characteristics from the primary service.\n
+		getCCCD -> Get the Client Characteristic Configuration Descriptors. \n
+		enable_notification -> enable notifications for all chrcs.\n
+		disable_notification -> disable notification for all chrcs.\n
+		prepare_influx_data -> Once we have fresh data for all chrcs. prepare the data 
+								in appropriate json format and send it to influxDB.\n
+		configure -> Call all the above methods in proper sequence.\n
+	'''		 
+
+	# SCD_PRI_UUID = 'fb3047b4-df00-4eb3-9587-3b00e5bb5791'
+	# SCD_CO2_UUID = 'b82febf7-93f8-93f8-8f52-b4797e33aab1'
 	SCD_TEMP_UUID = '2A6E'
 	SCD_HUM_UUID = '2A6F' 
 	CCCD_UUID = '2902'
 
-	def __init__(self, periph):
+	def __init__(self, periph, UUID='fb3047b4-df00-4eb3-9587-3b00e5bb5791', 
+								CO2_UUID='b82febf7-93f8-93f8-8f52-b4797e33aab1'):
+		self.SCD_PRI_UUID=UUID
+		self.SCD_CO2_UUID=CO2_UUID
 		self.per = periph
 		self.scd_svc = None
 		self.scd_temp_chrc = None
@@ -351,7 +458,7 @@ class SCD_service():
 		self.scd_hum_data=0
 		self.scd_co2_data=0
 		self.scd_temp_is_fresh=False
-		self.scd_sht_hum_is_fresh=False
+		self.scd_hum_is_fresh=False
 		self.scd_co2_is_fresh=False
 			
 	def getService(self):
@@ -359,9 +466,7 @@ class SCD_service():
 	
 	def getCharacteristics(self):
 		self.scd_temp_chrc = self.scd_svc.getCharacteristics(forUUID=self.SCD_TEMP_UUID)[0]
-			# handle.append(self.sht_temp_chrc.valHandle)
 		self.scd_hum_chrc = self.scd_svc.getCharacteristics(forUUID=self.SCD_HUM_UUID)[0]
-			# handle.append(self.sht_hum_chrc.valHandle)
 		self.scd_co2_chrc = self.scd_svc.getCharacteristics(forUUID=self.SCD_CO2_UUID)[0]
 			
 	def getCCCD(self):
@@ -372,7 +477,7 @@ class SCD_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
-	def _enable_notification(self):
+	def enable_notification(self):
 		self.scd_temp_chrc_cccd.write(b"\x01\x00",True)
 		self.scd_hum_chrc_cccd.write(b"\x01\x00",True)
 		self.scd_co2_chrc_cccd.write(b"\x01\x00", True)
@@ -387,7 +492,7 @@ class SCD_service():
 		iso = time.ctime()
 		self.scd_co2_is_fresh=False
 		self.scd_temp_is_fresh=False
-		self.scd_sht_hum_is_fresh=False
+		self.scd_hum_is_fresh=False
 		json_body = [
         {
             "measurement": "SCD",
@@ -409,16 +514,36 @@ class SCD_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
-		self._enable_notification()
-	
-	def enable_notification(self, per):
-		self.per = per
-		self._enable_notification()
-
+		self.enable_notification()
 
 
 
 class DS_service():  
+	'''
+	Class for DS18B20 Sensor on Adafruit Feather sense
+
+	This class will be used for the DS18B20 sensor on the adafruit feather sense board.
+	It will match the UUID given in the primary service list and also get all the charac
+	in that service. 
+
+	Members:
+		BMP_PRI_UUID -> UUID for the primary service.\n
+		self.per -> copy of the peripheral class that we get from BTLE(This will be given while instantiating this class.)\n
+		self.ds_temp_chrcs[] -> list of temperature characteristic.\n
+		self.ds_temp_chrc_cccds[] -> list of Client Characterstic Configuration Descriptor for temp. chrcs.\n
+		self.ds_temp_datas[] -> list temperature characteristic data. \n
+		self.ds_temp_is_fresh -> list of Current temp. chrc. values are fresh or not?\n
+
+	Methods:
+		getService -> Get the primary service from the given peripheral. \n
+		getCharacteristics -> Get the temp & hum. characteristics from the primary service.\n
+		getCCCD -> Get the Client Characteristic Configuration Descriptors. \n
+		enable_notification -> enable notifications for all chrcs.\n
+		disable_notification -> disable notification for all chrcs.\n
+		prepare_influx_data -> Once we have fresh data for all chrcs. prepare the data 
+								in appropriate json format and send it to influxDB.\n
+		configure -> Call all the above methods in proper sequence.\n
+	'''		
 
 	# DS_PRI_UUID = '8121b46f-56ce-487f-9084-5330700681d5'
 	DS_TEMP_UUID = '2A6E'
@@ -426,6 +551,7 @@ class DS_service():
 	CCCD_UUID = '2902'
 
 	def __init__(self, periph, UUID,num_sensors=1):
+		self.DS_PRI_UUID = UUID
 		self.per = periph
 		self.ds_svc = None
 		self._num_sensors=num_sensors
@@ -434,7 +560,6 @@ class DS_service():
 		self.ds_temp_datas=[0]*num_sensors
 		self.ds_temp_is_fresh=[False]*num_sensors
 
-		self.DS_PRI_UUID = UUID
 
 	def getService(self):
 		self.ds_svc = self.per.getServiceByUUID(self.DS_PRI_UUID)
@@ -450,12 +575,10 @@ class DS_service():
 	def getServicebyUUID(self,uuid):
 		return self.per.getServicebyUUID(uuid)
 	
-	def _enable_notification(self):
+	def enable_notification(self):
 		for c in self.ds_temp_chrc_cccds:
 			c.write(b"\x01\x00",True)
-
-	
-			
+		
 	def disable_notification(self):
 		for c in self.ds_temp_chrc_cccds:
 			c.write(b"\x01\x00",False)
@@ -501,14 +624,12 @@ class DS_service():
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
-		self._enable_notification()
-		
-	def enable_notification(self, per):
-		self.per = per
-		self._enable_notification()
+		self.enable_notification()
 
 
 
+# Try to make all the sensors into one shell and use it for each thread.
+# Status: This will be a part of optimization so work on it after the deadline.
 class All_Board_Sensor():
 	def __init__(self, Address):
 		# Call the connect peripheral method to get the peripheral class.
