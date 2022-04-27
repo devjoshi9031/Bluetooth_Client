@@ -701,3 +701,54 @@ class All_Board_Sensor():
 			self.ch = s.getCharacteristics()
 			for c in self.ch:
 				print(s.uuid, c)
+
+
+class Battery_service():
+    BATTERY_VAL_UUID='2AE1'
+    CCCD_UUID='2902'
+    def __init__(self,periph, UUID):
+        self.per= periph
+        self.BATT_UUID=UUID
+        self.battery_svc=None
+        self.battery_chrc=None
+        self.battery_chrc_cccd=0
+        self.battery_data=0
+
+    def getService(self):
+        self.sht_svc = self.per.getServiceByUUID(self.BATT_UUID)
+
+    def getCharacteristics(self):
+        self.battery_chrc = self.per.getCharacteristics(forUUID=self.BATTERY_VAL_UUID)[0]
+
+    def getCCCD(self):
+        self.battery_chrc_cccd = self.battery.chrc.getDescriptors(self.CCCD_UUID)[0]
+
+    def enable_notification(self):
+        self.battery_chrc_cccd.write(b"\x01\x00", True)
+
+    def disable_notification(self):
+        self.battery_chrc_cccd.write(b"\x00\x00",False)
+
+    def prepare_influx_data(self,tag):
+        iso = time.ctime()
+        json_body = [
+                {
+                    "measurement": "Battery",
+                    "time_t":iso,
+                    "tags":{
+                        "Boards": tag,
+                        },
+                    "fields":{
+                        "Battery_Value": self.battery_data,
+                        }
+                    }
+                ]
+        write_influx_data(josn_body)
+
+    def configure(self):
+        self.getService()
+        self.getCharacteristics()
+        self.getCCCD()
+        self.enable_notification()
+
+
