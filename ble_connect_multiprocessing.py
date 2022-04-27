@@ -60,7 +60,11 @@ class notifDelegate_All_Board(DefaultDelegate):
 			
     def handleNotification(self, cHandle, data):
         dat=int.from_bytes(data, byteorder=sys.byteorder)
-        if(cHandle==SHT.sht_temp_chrc.valHandle):
+        if(cHandle == BATT.battery_chrc.valHandle):
+            BATT.battery_data = dat/100
+            print("All_Sensors Battery: {:.3f}".format(BATT.battery_data))
+            BATT.prepare_influx_data("All_Sensors")
+        elif(cHandle==SHT.sht_temp_chrc.valHandle):
             SHT.sht_temp_is_fresh = True
             # Make something here to make sure that this is a fresh data
             SHT.sht_temp_data = dat/100
@@ -144,10 +148,12 @@ class notifDelegate_All_Board(DefaultDelegate):
             print("DS temp1: {}".format(dat/100))
             DS.prepare_influx_data("All_Sensors")
 
-        elif(cHandle == BATT.battery_chrc.valHandle):
-            BATT.battery_data = dat/100
-            print("All_Sensors Battery: {}".format(BATT.battery_data))
-            BATT.prepare_influx_data("All_Sensors")
+        elif(cHandle == BME.bme_tvoc_chrc.valHandle):
+            BME.bme_tvoc_data=dat
+            print("ALl Sensors BME_TVOC: {}".format(dat))
+            BME.prepare_influx_data("All_Sensors")
+
+
 
 
 class notifDelegate_DS_Board(DefaultDelegate):
@@ -202,7 +208,7 @@ class notifDelegate_DS_Board(DefaultDelegate):
 
         elif(cHandle == DS_SENSOR_BATT.battery_chrc.valHandle):
             DS_SENSOR_BATT.battery_data = dat/100
-            print("Only DS Sensor Battery: {}".format(DS_SENSOR_BATT.battery_data))
+            print("Only DS Sensor Battery: {:.3f}".format(DS_SENSOR_BATT.battery_data))
             DS_SENSOR_BATT.prepare_influx_data("Only_DS_Sensors")
 
 
@@ -218,7 +224,7 @@ def thread1(index):
             print("Thread 1: Connecting to peripheral!!!")
 
             # notifdelegate class needs to access these classes, so make them global.
-            global SHT, APDS, BMP, LSM, SCD, DS, BATT
+            global SHT, APDS, BMP, LSM, SCD, DS, BATT, BME
 
             peripheral = connect_device(mac_address[index])
             print_svcs(peripheral)
@@ -230,15 +236,21 @@ def thread1(index):
             SCD = SCD_service(periph=peripheral)
             DS = DS_service(periph=peripheral, UUID='8121b46f-56ce-487f-9084-5330700681d5', num_sensors=1)
             BATT = Battery_service(periph=peripheral, UUID='c9e3205e-f994-4ff0-8300-9b703aecae08')
+            BME = BME_service(periph=peripheral, UUID='54adba22-25c7-49d2-b4be-dbbb1a77efa3')
 
             print("Thread 1: Configuring all the sensor classes!!!")
+            BATT.configure()
             SHT.configure()
             APDS.configure()
             BMP.configure()
             LSM.configure()
             SCD.configure()
             DS.configure()
-            BATT.configure()
+            BME.configure()
+
+            print("Thread 1: Done Configuration! Waiting for notification!!")
+            
+            
             # Wait indefinitely to receive notifications from the connection
             while True:
                 if peripheral.waitForNotifications(1.0):
@@ -248,7 +260,7 @@ def thread1(index):
         except Exception as e:
             peripheral.disconnect()
             print("Thread 1: Exception: {}".format(e))
-            send_message("Thread 1: Exception: {}".format(e))
+            # send_message("Thread 1: Exception: {}".format(e))
             time.sleep(10)
 
 
@@ -260,7 +272,7 @@ def thread2(index):
             peripheral = connect_device(mac_address[index])
             print_svcs(peripheral)
             # notifdelegate class needs to access this class, so make it global
-            global DS_SENSOR_DS
+            global DS_SENSOR_DS, DS_SENSOR_BATT
             print("Thread 2: Initiating DS sensor class!!!")
             DS_SENSOR_DS = DS_service(periph=peripheral, UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', num_sensors=5)
             DS_SENSOR_BATT = Battery_service(periph=peripheral, UUID='b9ad8153-8145-4575-9d1a-ab745b5b2d08')
@@ -268,6 +280,7 @@ def thread2(index):
             DS_SENSOR_DS.configure()
             DS_SENSOR_BATT.configure()
 
+            print("Thread 2: Done Configuration! Waiting for notification!!")
             # Wait indefinitely to receive notifications from the connection.
             while True:
                 if peripheral.waitForNotifications(1.0):
@@ -276,9 +289,10 @@ def thread2(index):
         # Try and except will make sure the code doesn't stop.
         # Disconnect and notify user about the exception.
         except Exception as e:
-            peripheral.disconnect()
-            print("Exception: {}".format(e))
-            send_message("Exception: {}".format(e))
+            if(peripheral is not None):
+                peripheral.disconnect()
+            print("Thread 2: Exception: {}".format(e))
+            send_message("Thread 2: Exception: {}".format(e))
             time.sleep(10)
 
 # Mac address list to store the address of the sensor boards.

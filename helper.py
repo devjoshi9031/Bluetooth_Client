@@ -626,8 +626,139 @@ class DS_service():
 		self.getCCCD()
 		self.enable_notification()
 
+class Battery_service():
+	BATTERY_VAL_UUID='2ae1'
+	CCCD_UUID='2902'
+	def __init__(self,periph, UUID):
+		self.per = periph
+		self.BATT_UUID = UUID
+		self.battery_svc=None
+		self.battery_chrc=None
+		self.battery_chrc_cccd=0
+		self.battery_data=0
+	def getService(self):
+		self.battery_svc = self.per.getServiceByUUID(self.BATT_UUID)
+	
+	def getCharacteristics(self):
+		self.battery_chrc = self.battery_svc.getCharacteristics(forUUID=self.BATTERY_VAL_UUID)[0]
+
+	def getCCCD(self):
+		self.battery_chrc_cccd = self.battery_chrc.getDescriptors(self.CCCD_UUID)[0]
+
+	def enable_notification(self):
+		self.battery_chrc_cccd.write(b"\x01\x00", True)
+	
+	def disable_notification(self):
+		self.battery_chrc_cccd.write(b"\x00\x00", False)
+
+	def prepare_influx_data(self,tag):
+		iso = time.ctime()
+		json_body = [
+        {
+            "measurement": "Battery",
+            "time_t":iso,
+			"tags":{
+				"Board": tag,
+				},
+            "fields": {
+                "Battery_Value": self.battery_data,
+            	}            
+            }
+        ]
+		write_influx_data(json_body)
+	
+	def configure(self):
+		self.getService()
+		self.getCharacteristics()
+		self.getCCCD()
+		self.enable_notification()
 
 
+class BME_service(): 
+	'''
+	Class for BME680 Sensor on Adafruit Feather sense
+
+	This class will be used for the BME680 sensor on the adafruit feather sense board.
+	It will match the UUID given in the primary service list and also get all the charac
+	in that service. 
+
+	Members:
+		BMP_PRI_UUID -> UUID for the primary service.\n
+		self.per -> copy of the peripheral class that we get from BTLE(This will be given while instantiating this class.)\n
+		self.bme_svc -> BME main service\n
+		self.bme_tvoc_chrc -> TVOC characteristic\n
+		self.bme_tvoc_chrc_cccd -> Client Characteristic Configuration Descriptor for TVOC chrc.\n
+		self.bme_tvoc_data -> TVOC characteristic data\n
+
+	Methods:
+		getService -> Get the primary service from the given peripheral. \n
+		getCharacteristics -> Get the temp & hum. characteristics from the primary service.\n
+		getCCCD -> Get the Client Characteristic Configuration Descriptors. \n
+		enable_notification -> enable notifications for all chrcs.\n
+		disable_notification -> disable notification for all chrcs.\n
+		prepare_influx_data -> Once we have fresh data for all chrcs. prepare the data 
+								in appropriate json format and send it to influxDB.\n
+		configure -> Call all the above methods in proper sequence.\n
+	'''		 
+
+	# BME_PRI_UUID = '54adba22-25c7-49d2-b4be-dbbb1a77efa3'
+	# BME_TVOC_UUID = '67b2890f-e716-45e8-a8fe-4213db675224'
+	CCCD_UUID = '2902'
+
+	def __init__(self, periph, UUID='54adba22-25c7-49d2-b4be-dbbb1a77efa3', 
+								TVOC_UUID='67b2890f-e716-45e8-a8fe-4213db675224'):
+		self.BME_PRI_UUID=UUID
+		self.BME_TVOC_UUID=TVOC_UUID
+		self.per = periph
+		self.bme_svc = None
+		self.bme_tvoc_chrc = None
+		self.bme_tvoc_chrc_cccd = None
+		self.bme_tvoc_data=0
+
+	def getService(self):
+		self.bme_svc = self.per.getServiceByUUID(self.BME_PRI_UUID)
+	
+	def getCharacteristics(self):
+		self.bme_tvoc_chrc = self.bme_svc.getCharacteristics(forUUID=self.BME_TVOC_UUID)[0]
+			
+	def getCCCD(self):
+		self.bme_tvoc_chrc_cccd = self.bme_tvoc_chrc.getDescriptors(self.CCCD_UUID)[0]
+
+	def getServicebyUUID(self,uuid):
+		return self.per.getServicebyUUID(uuid)
+	
+	def enable_notification(self):
+		self.bme_tvoc_chrc_cccd.write(b"\x01\x00", True)
+	
+			
+	def disable_notification(self):
+		self.bme_tvoc_chrc_cccd.write(b"\x00\x00", False)   
+
+	def prepare_influx_data(self, tag):
+		iso = time.ctime()
+		json_body = [
+        {
+            "measurement": "BME",
+            "time_t":iso,
+			"tags":{
+				"Board": tag,
+				},
+            "fields": {
+				"TVOC_GAS": self.bme_tvoc_data,
+            	}
+            
+            }
+        ]
+		write_influx_data(json_body)
+			
+	def configure(self):
+		self.getService()
+		self.getCharacteristics()
+		self.getCCCD()
+		self.enable_notification()
+
+
+'''
 # Try to make all the sensors into one shell and use it for each thread.
 # Status: This will be a part of optimization so work on it after the deadline.
 class All_Board_Sensor():
@@ -701,54 +832,8 @@ class All_Board_Sensor():
 			self.ch = s.getCharacteristics()
 			for c in self.ch:
 				print(s.uuid, c)
+'''
 
 
-class Battery_service():
-    BATTERY_VAL_UUID='2AE1'
-    CCCD_UUID='2902'
-    def __init__(self,periph, UUID):
-        self.per= periph
-        self.BATT_UUID=UUID
-        self.battery_svc=None
-        self.battery_chrc=None
-        self.battery_chrc_cccd=0
-        self.battery_data=0
-
-    def getService(self):
-        self.sht_svc = self.per.getServiceByUUID(self.BATT_UUID)
-
-    def getCharacteristics(self):
-        self.battery_chrc = self.per.getCharacteristics(forUUID=self.BATTERY_VAL_UUID)[0]
-
-    def getCCCD(self):
-        self.battery_chrc_cccd = self.battery.chrc.getDescriptors(self.CCCD_UUID)[0]
-
-    def enable_notification(self):
-        self.battery_chrc_cccd.write(b"\x01\x00", True)
-
-    def disable_notification(self):
-        self.battery_chrc_cccd.write(b"\x00\x00",False)
-
-    def prepare_influx_data(self,tag):
-        iso = time.ctime()
-        json_body = [
-                {
-                    "measurement": "Battery",
-                    "time_t":iso,
-                    "tags":{
-                        "Boards": tag,
-                        },
-                    "fields":{
-                        "Battery_Value": self.battery_data,
-                        }
-                    }
-                ]
-        write_influx_data(josn_body)
-
-    def configure(self):
-        self.getService()
-        self.getCharacteristics()
-        self.getCCCD()
-        self.enable_notification()
 
 
