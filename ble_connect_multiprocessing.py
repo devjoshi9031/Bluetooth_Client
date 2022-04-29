@@ -25,7 +25,7 @@ def connect_device(address):
     '''
     print("Connecting to {} device...".format(address))
     per = Peripheral(address, ADDR_TYPE_RANDOM, iface=0)
-    if per.addr == mac_address[0]:
+    if per.addr == mac_address[2]:
         per.setDelegate(notifDelegate_DS_Board())
     else:
         per.setDelegate(notifDelegate_All_Board())
@@ -206,6 +206,27 @@ class notifDelegate_DS_Board(DefaultDelegate):
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
+        elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[5].valHandle):
+            DS_SENSOR_DS.ds_temp_is_fresh[5]=True
+            DS_SENSOR_DS.ds_temp_datas[5] = (dat/100)
+            print("DS temp6: {}".format(dat/100))
+            if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
+                DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
+
+        elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[6].valHandle):
+            DS_SENSOR_DS.ds_temp_is_fresh[6]=True
+            DS_SENSOR_DS.ds_temp_datas[6] = (dat/100)
+            print("DS temp7: {}".format(dat/100))
+            if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
+                DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
+
+        elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[7].valHandle):
+            DS_SENSOR_DS.ds_temp_is_fresh[7]=True
+            DS_SENSOR_DS.ds_temp_datas[7] = (dat/100)
+            print("DS temp8: {}".format(dat/100))
+            if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
+                DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
+
         elif(cHandle == DS_SENSOR_BATT.battery_chrc.valHandle):
             DS_SENSOR_BATT.battery_data = dat/100
             print("Only DS Sensor Battery: {:.3f}".format(DS_SENSOR_BATT.battery_data))
@@ -267,6 +288,7 @@ def thread1(index):
 def thread2(index):
     while(True):
         try:
+            peripheral=None
             t.sleep(10)
             print("Thread 2: Connecting to peripheral!!!")
             peripheral = connect_device(mac_address[index])
@@ -274,7 +296,7 @@ def thread2(index):
             # notifdelegate class needs to access this class, so make it global
             global DS_SENSOR_DS, DS_SENSOR_BATT
             print("Thread 2: Initiating DS sensor class!!!")
-            DS_SENSOR_DS = DS_service(periph=peripheral, UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', num_sensors=5)
+            DS_SENSOR_DS = DS_service(periph=peripheral, UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', num_sensors=8)
             DS_SENSOR_BATT = Battery_service(periph=peripheral, UUID='b9ad8153-8145-4575-9d1a-ab745b5b2d08')
             print("Thread 2: Configuring DS sensor class!!!")
             DS_SENSOR_DS.configure()
@@ -296,7 +318,7 @@ def thread2(index):
             time.sleep(10)
 
 # Mac address list to store the address of the sensor boards.
-mac_address=['DE:F7:1D:89:55:D5','CF:D8:B3:75:D1:D5']
+mac_address=['DE:F7:1D:89:55:D5','CF:D8:B3:75:D1:D5', 'FC:9A:71:3C:E4:B8']
 # List to store the number of processes.
 proc_list=[]
 
@@ -304,7 +326,7 @@ proc_list=[]
 if __name__ == "__main__":
     # Make two processes and append them in the list.
     proc_list.append(mp.Process(target=thread1, name="All_Sensor_Board", args=(1,)))
-    proc_list.append(mp.Process(target=thread2, name="DS_Sensor_Board", args=(0,)))
+    proc_list.append(mp.Process(target=thread2, name="DS_Sensor_Board", args=(2,)))
 
 # TODO: Need to support signalling between threads to make sure if a process is stuck we
         # should be able to restart a thread.
