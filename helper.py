@@ -614,6 +614,9 @@ class DS_service():
 					"Temperature3": self.ds_temp_datas[2],
 					"Temperature4": self.ds_temp_datas[3],
 					"Temperature5": self.ds_temp_datas[4],
+					"Temperature6": self.ds_temp_datas[5],
+					"Temperature7": self.ds_temp_datas[6],
+					"Temperature8": self.ds_temp_datas[7],
 					}
 				
 				}
