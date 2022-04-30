@@ -630,11 +630,11 @@ class DS_service():
 		self.enable_notification()
 
 class Battery_service():
-	BATTERY_VAL_UUID='2ae1'
 	CCCD_UUID='2902'
-	def __init__(self,periph, UUID):
+	def __init__(self,periph, UUID, BATTERY_VAL_UUID):
 		self.per = periph
 		self.BATT_UUID = UUID
+		self.BATTERY_VAL_UUID=BATTERY_VAL_UUID
 		self.battery_svc=None
 		self.battery_chrc=None
 		self.battery_chrc_cccd=0

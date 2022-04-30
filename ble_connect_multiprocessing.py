@@ -25,10 +25,12 @@ def connect_device(address):
     '''
     print("Connecting to {} device...".format(address))
     per = Peripheral(address, ADDR_TYPE_RANDOM, iface=0)
-    if per.addr == mac_address[2]:
-        per.setDelegate(notifDelegate_DS_Board())
+    if (per.addr == mac_address['DS_Sensor_Board'] or per.addr == mac_address['Dummy']):
+        per.setDelegate(notifDelegate_DS_Sensor_Board())
+    elif(per.addr == mac_address['All_Sensor_Board']):
+        per.setDelegate(notifDelegate_All_Sensor_Board())
     else:
-        per.setDelegate(notifDelegate_All_Board())
+        print("Check Connect_device function. Need proper Delegate class to proper address")
     print("Successfully Connected to {} device\n".format(address))
     return per
 
@@ -48,7 +50,7 @@ def send_message(_msg):
     }), { "Content-type": "application/x-www-form-urlencoded" })
     conn.getresponse()
 
-class notifDelegate_All_Board(DefaultDelegate):
+class notifDelegate_All_Sensor_Board(DefaultDelegate):
     '''
     Delegate function. This function will be called everytime a notification is received 
     on the connected peripheral device. This will be set at the time of connection, so single
@@ -62,7 +64,7 @@ class notifDelegate_All_Board(DefaultDelegate):
         dat=int.from_bytes(data, byteorder=sys.byteorder)
         if(cHandle == BATT.battery_chrc.valHandle):
             BATT.battery_data = dat/100
-            print("All_Sensors Battery: {:.3f}".format(BATT.battery_data))
+            print("All_Sensors Battery: {:.3f}".format(dat))
             BATT.prepare_influx_data("All_Sensors")
         elif(cHandle==SHT.sht_temp_chrc.valHandle):
             SHT.sht_temp_is_fresh = True
@@ -138,7 +140,7 @@ class notifDelegate_All_Board(DefaultDelegate):
         elif(cHandle == SCD.scd_hum_chrc.valHandle):
             SCD.scd_hum_is_fresh=True
             SCD.scd_hum_data = dat/100
-            print("SCD temp value: {}".format(dat))
+            print("SCD humidity value: {}".format(dat))
             if(SCD.scd_temp_is_fresh == True and SCD.scd_co2_is_fresh==True):
                 SCD.prepare_influx_data("All_Sensors")
 
@@ -156,7 +158,7 @@ class notifDelegate_All_Board(DefaultDelegate):
 
 
 
-class notifDelegate_DS_Board(DefaultDelegate):
+class notifDelegate_DS_Sensor_Board(DefaultDelegate):
     '''
     Delegate function. This function will be called everytime a notification is received 
     on the connected peripheral device. This will be set at the time of connection, so single
@@ -233,7 +235,7 @@ class notifDelegate_DS_Board(DefaultDelegate):
             DS_SENSOR_BATT.prepare_influx_data("Only_DS_Sensors")
 
 
-def thread1(index):
+def thread1():
     ''' 
     THREAD1 FUNCTION:
 
@@ -242,12 +244,13 @@ def thread1(index):
     '''
     while(True):
         try:
+            peripheral=None
             print("Thread 1: Connecting to peripheral!!!")
 
             # notifdelegate class needs to access these classes, so make them global.
             global SHT, APDS, BMP, LSM, SCD, DS, BATT, BME
 
-            peripheral = connect_device(mac_address[index])
+            peripheral = connect_device(mac_address[str(mp.current_process().name)])
             print_svcs(peripheral)
             print("Thread 1: Initiating all the sensor classes!!!")
             SHT = SHT_service(periph=peripheral)
@@ -257,7 +260,7 @@ def thread1(index):
             SCD = SCD_service(periph=peripheral)
             DS = DS_service(periph=peripheral, UUID='8121b46f-56ce-487f-9084-5330700681d5', num_sensors=1)
             BATT = Battery_service(periph=peripheral, UUID='c9e3205e-f994-4ff0-8300-9b703aecae08')
-            BME = BME_service(periph=peripheral, UUID='54adba22-25c7-49d2-b4be-dbbb1a77efa3')
+            BME = BME_service(periph=peripheral, UUID='54adba22-25c7-49d2-b4be-dbbb1a77efa3', BATTERY_VAL_UUID='3d84bece-189c-4bc7-9f10-512173ed8eaa')
 
             print("Thread 1: Configuring all the sensor classes!!!")
             BATT.configure()
@@ -281,23 +284,23 @@ def thread1(index):
         except Exception as e:
             peripheral.disconnect()
             print("Thread 1: Exception: {}".format(e))
-            # send_message("Thread 1: Exception: {}".format(e))
+            send_message("Thread 1: Exception: {}".format(e))
             time.sleep(10)
 
 
-def thread2(index):
+def thread2():
     while(True):
         try:
             peripheral=None
             t.sleep(10)
             print("Thread 2: Connecting to peripheral!!!")
-            peripheral = connect_device(mac_address[index])
+            peripheral = connect_device(mac_address[str(mp.current_process().name)])
             print_svcs(peripheral)
             # notifdelegate class needs to access this class, so make it global
             global DS_SENSOR_DS, DS_SENSOR_BATT
             print("Thread 2: Initiating DS sensor class!!!")
             DS_SENSOR_DS = DS_service(periph=peripheral, UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', num_sensors=8)
-            DS_SENSOR_BATT = Battery_service(periph=peripheral, UUID='b9ad8153-8145-4575-9d1a-ab745b5b2d08')
+            DS_SENSOR_BATT = Battery_service(periph=peripheral, UUID='b9ad8153-8145-4575-9d1a-ab745b5b2d08', BATTERY_VAL_UUID='e0482d82-3a6f-4f52-b35f-c86eda8747fd')
             print("Thread 2: Configuring DS sensor class!!!")
             DS_SENSOR_DS.configure()
             DS_SENSOR_BATT.configure()
@@ -318,15 +321,15 @@ def thread2(index):
             time.sleep(10)
 
 # Mac address list to store the address of the sensor boards.
-mac_address=['DE:F7:1D:89:55:D5','CF:D8:B3:75:D1:D5', 'FC:9A:71:3C:E4:B8']
+mac_address={'Dummy':'DE:F7:1D:89:55:D5', 'All_Sensor_Board': 'CF:D8:B3:75:D1:D5','DS_Sensor_Board': 'FC:9A:71:3C:E4:B8'}
 # List to store the number of processes.
 proc_list=[]
 
 # Code to run for the main process.
 if __name__ == "__main__":
     # Make two processes and append them in the list.
-    proc_list.append(mp.Process(target=thread1, name="All_Sensor_Board", args=(1,)))
-    proc_list.append(mp.Process(target=thread2, name="DS_Sensor_Board", args=(2,)))
+    proc_list.append(mp.Process(target=thread1, name="All_Sensor_Board"))
+    proc_list.append(mp.Process(target=thread2, name="DS_Sensor_Board"))
 
 # TODO: Need to support signalling between threads to make sure if a process is stuck we
         # should be able to restart a thread.
