@@ -259,8 +259,8 @@ def thread1():
             LSM = LSM_service(periph=peripheral)
             SCD = SCD_service(periph=peripheral)
             DS = DS_service(periph=peripheral, UUID='8121b46f-56ce-487f-9084-5330700681d5', num_sensors=1)
-            BATT = Battery_service(periph=peripheral, UUID='c9e3205e-f994-4ff0-8300-9b703aecae08')
-            BME = BME_service(periph=peripheral, UUID='54adba22-25c7-49d2-b4be-dbbb1a77efa3', BATTERY_VAL_UUID='3d84bece-189c-4bc7-9f10-512173ed8eaa')
+            BATT = Battery_service(periph=peripheral, UUID='c9e3205e-f994-4ff0-8300-9b703aecae08', BATTERY_VAL_UUID='3d84bece-189c-4bc7-9f10-512173ed8eaa')
+            BME = BME_service(periph=peripheral, UUID='54adba22-25c7-49d2-b4be-dbbb1a77efa3')
 
             print("Thread 1: Configuring all the sensor classes!!!")
             BATT.configure()
