@@ -547,7 +547,6 @@ class DS_service():
 
 	# DS_PRI_UUID = '8121b46f-56ce-487f-9084-5330700681d5'
 	DS_TEMP_UUID = '2A6E'
-
 	CCCD_UUID = '2902'
 
 	def __init__(self, periph, UUID,num_sensors=1):
@@ -561,7 +560,8 @@ class DS_service():
 		self.ds_temp_is_fresh=[False]*num_sensors
 		# One to One correspondence for the address and value.
 		self.final_address_data = {'S1ULC':0.00, 'S1URC': 0.00, 'S1LLC':0.00, 'S1LRC':0.00, 
-									'S2ULC': 0.00, 'S2URC': 0.00, 'S2LLC':0.00, 'S2LRC':0.00}
+									'S2ULC': 0.00, 'S2URC': 0.00, 'S2LLC':0.00, 'S2LRC':0.00,
+									'Outside': 0.00}
 
 
 	def getService(self):
@@ -592,11 +592,12 @@ class DS_service():
 		S1ULC: 0x1B
 		S1URC: 0xD5
 		S1LLC: 0X10
-		S1LRC: 0X00
+		S1LRC: 0X96
 		S2ULC: 0xDC
 		S2URC: 0x2B
-		S2LLC: 0X00
+		S2LLC: 0X2F
 		S2LRC: 0XD2
+		Out:   0x1D
 		'''
 		if address == 0x1B:
 			self.final_address_data['S1ULC']=data
@@ -607,7 +608,7 @@ class DS_service():
 		elif address == 0x10:
 			self.final_address_data['S1LLC']=data
 			return 2
-		elif address == 0x00:
+		elif address == 0x96:
 			self.final_address_data['S1LRC']=data
 			return 3
 		elif address == 0xDC:
@@ -616,13 +617,15 @@ class DS_service():
 		elif address == 0x2B:
 			self.final_address_data['S2URC']=data
 			return 5
-		elif address == 0x00:
+		elif address == 0x2F:
 			self.final_address_data['S2LLC']=data
 			return 6
 		elif address == 0xD2:
 			self.final_address_data['S2LRC']=data
 			return 7
-		
+		elif address == 0x1D:
+			self.final_address_data['Outside']=data
+			return 8
 		else:
 			print("***We should not be here***")
 			return -1
@@ -645,6 +648,8 @@ class DS_service():
 				}
 			]
 		else:
+			# print(self.final_address_data)
+			# print("Normal:", self.ds_temp_datas)
 			json_body = [
 			{
 				"measurement": "DS",
@@ -653,14 +658,15 @@ class DS_service():
 					"Board": tag,
 					},
 				"fields": {
-					"Temperature1": self.ds_temp_datas[0],
-					"Temperature2": self.ds_temp_datas[1],
-					"Temperature3": self.ds_temp_datas[2],
-					"Temperature4": self.ds_temp_datas[3],
-					"Temperature5": self.ds_temp_datas[4],
-					"Temperature6": self.ds_temp_datas[5],
-					"Temperature7": self.ds_temp_datas[6],
-					"Temperature8": self.ds_temp_datas[7],
+					"S1ULC": self.final_address_data['S1ULC'],
+					"S1URC": self.final_address_data['S1URC'],
+					"S1LLC": self.final_address_data['S1LLC'],
+					"S1LRC": self.final_address_data['S1LRC'],
+					"S2ULC": self.final_address_data['S2ULC'],
+					"S2URC": self.final_address_data['S2URC'],
+					"S2LLC": self.final_address_data['S2LLC'],
+					"S2LRC": self.final_address_data['S2LRC'],
+					"OUTSIDE": self.final_address_data['Outside'],
 					}
 				
 				}
