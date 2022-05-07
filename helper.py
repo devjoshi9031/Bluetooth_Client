@@ -559,6 +559,9 @@ class DS_service():
 		self.ds_temp_chrc_cccds=[]
 		self.ds_temp_datas=[0]*num_sensors
 		self.ds_temp_is_fresh=[False]*num_sensors
+		# One to One correspondence for the address and value.
+		self.final_address_data = {'S1ULC':0.00, 'S1URC': 0.00, 'S1LLC':0.00, 'S1LRC':0.00, 
+									'S2ULC': 0.00, 'S2URC': 0.00, 'S2LLC':0.00, 'S2LRC':0.00}
 
 
 	def getService(self):
@@ -583,6 +586,47 @@ class DS_service():
 		for c in self.ds_temp_chrc_cccds:
 			c.write(b"\x01\x00",False)
 		
+
+	def put_data_in_appropriate_place(self,address, data):
+		'''
+		S1ULC: 0x1B
+		S1URC: 0xD5
+		S1LLC: 0X10
+		S1LRC: 0X00
+		S2ULC: 0xDC
+		S2URC: 0x2B
+		S2LLC: 0X00
+		S2LRC: 0XD2
+		'''
+		if address == 0x1B:
+			self.final_address_data['S1ULC']=data
+			return 0
+		elif address == 0xD5:
+			self.final_address_data['S1URC']=data
+			return 1
+		elif address == 0x10:
+			self.final_address_data['S1LLC']=data
+			return 2
+		elif address == 0x00:
+			self.final_address_data['S1LRC']=data
+			return 3
+		elif address == 0xDC:
+			self.final_address_data['S2ULC']=data
+			return 4
+		elif address == 0x2B:
+			self.final_address_data['S2URC']=data
+			return 5
+		elif address == 0x00:
+			self.final_address_data['S2LLC']=data
+			return 6
+		elif address == 0xD2:
+			self.final_address_data['S2LRC']=data
+			return 7
+		
+		else:
+			print("***We should not be here***")
+			return -1
+
 	def prepare_influx_data(self, tag):
 		iso = time.ctime()
 		[False for i in self.ds_temp_is_fresh]

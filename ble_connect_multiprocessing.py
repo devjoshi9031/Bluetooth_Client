@@ -1,11 +1,10 @@
 import multiprocessing as mp
-import this
 from bluepy.btle import *
 import time as t
+from paramiko import ECDSAKey
 from helper import *
 import http.client, urllib
-import logging as log
-
+import traceback
 def print_svcs(per):
     '''
     This will print all the characteristics of all the services in a peripheral connection.
@@ -66,6 +65,8 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
         DefaultDelegate.__init__(self)
 			
     def handleNotification(self, cHandle, data):
+        thread1_period_end = t.time()
+        thread1_event.set()
         dat=int.from_bytes(data, byteorder=sys.byteorder)
         if(cHandle == BATT.battery_chrc.valHandle):
             BATT.battery_data = dat/100
@@ -174,62 +175,74 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
         DefaultDelegate.__init__(self)
         
     def handleNotification(self, cHandle, data):
+        thread2_event.set()
+        thread2_period_end=t.time()
         dat=int.from_bytes(data, byteorder=sys.byteorder)
         if(cHandle == DS_SENSOR_DS.ds_temp_chrcs[0].valHandle):
-            DS_SENSOR_DS.ds_temp_is_fresh[0]=True
-            DS_SENSOR_DS.ds_temp_datas[0] = ((dat>>8)/100)
-            print("Address: {}\tDS temp1: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[0]))
+            index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            # Here we have to give temp_data a list of address and data value.
+            DS_SENSOR_DS.ds_temp_datas[0] = [(dat&0xFF),((dat>>8)/100)]
+            print("Address: {}\tDS temp1: {}".format(hex(DS_SENSOR_DS.ds_temp_datas[0][0]),DS_SENSOR_DS.ds_temp_datas[0][1]))
+            # print("Address: {}\tDS temp1: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[0]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[1].valHandle):
-            DS_SENSOR_DS.ds_temp_is_fresh[1]=True
-            DS_SENSOR_DS.ds_temp_datas[1] = ((dat>>8)/100)
+            index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_datas[1] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp2: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[1]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[2].valHandle):
-            DS_SENSOR_DS.ds_temp_is_fresh[2]=True
-            DS_SENSOR_DS.ds_temp_datas[2] = ((dat>>8)/100)
+            index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_datas[2] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp3: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[2]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[3].valHandle):
-            DS_SENSOR_DS.ds_temp_is_fresh[3]=True
-            DS_SENSOR_DS.ds_temp_datas[3] = ((dat>>8)/100)
+            index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_datas[3] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp4: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[3]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[4].valHandle):
-            DS_SENSOR_DS.ds_temp_is_fresh[4]=True
-            DS_SENSOR_DS.ds_temp_datas[4] = ((dat>>8)/100)
+            index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_datas[4] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp5: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[4]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[5].valHandle):
-            DS_SENSOR_DS.ds_temp_is_fresh[5]=True
-            DS_SENSOR_DS.ds_temp_datas[5] = ((dat>>8)/100)
+            index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_datas[5] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp6: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[5]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[6].valHandle):
-            DS_SENSOR_DS.ds_temp_is_fresh[6]=True
-            DS_SENSOR_DS.ds_temp_datas[6] = ((dat>>8)/100)
+            index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_datas[6] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp7: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[6]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[7].valHandle):
-            DS_SENSOR_DS.ds_temp_is_fresh[7]=True
-            DS_SENSOR_DS.ds_temp_datas[7] = ((dat>>8)/100)
+            index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_datas[7] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp8: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[7]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
@@ -253,8 +266,8 @@ def thread1():
             print("Thread 1: Connecting to peripheral!!!")
 
             # notifdelegate class needs to access these classes, so make them global.
-            global SHT, APDS, BMP, LSM, SCD, DS, BATT, BME
-
+            global SHT, APDS, BMP, LSM, SCD, DS, BATT, BME, thread1_period_end
+            SHT=APDS=BMP=LSM=SCD=DS=BATT=BME=None
             peripheral = connect_device(mac_address[str(mp.current_process().name)])
             print_svcs(peripheral)
             print("Thread 1: Initiating all the sensor classes!!!")
@@ -292,6 +305,7 @@ def thread1():
             print("Thread 1: Exception: {}".format(e))
             # send_message("Thread 1: Exception: {}".format(e))
             time.sleep(10)
+            return
 
 
 def thread2():
@@ -320,29 +334,82 @@ def thread2():
         # Try and except will make sure the code doesn't stop.
         # Disconnect and notify user about the exception.
         except Exception as e:
+            print(traceback.format_exc())
             if(peripheral is not None):
                 peripheral.disconnect()
             print("Thread 2: Exception: {}".format(e))
             send_message("Thread 2: Exception: {}".format(e))
             time.sleep(10)
+            
 
 # Mac address list to store the address of the sensor boards.
 mac_address={'Dummy':'DE:F7:1D:89:55:D5', 'All_Sensor_Board': 'CF:D8:B3:75:D1:D5','DS_Sensor_Board': 'FC:9A:71:3C:E4:B8'}
 # List to store the number of processes.
 proc_list=[]
-
+thread1_period_end=t.time()
+thread2_period_end=t.time()
+thread1_event = mp.Event()
+thread2_event = mp.Event()
 # Code to run for the main process.
 if __name__ == "__main__":
     # Make two processes and append them in the list.
     proc_list.append(mp.Process(target=thread1, name="All_Sensor_Board"))
-    proc_list.append(mp.Process(target=thread2, name="DS_Sensor_Board"))
+    proc_list.append(mp.Process(target=thread2, name="Dummy"))
 
 # TODO: Need to support signalling between threads to make sure if a process is stuck we
         # should be able to restart a thread.
     proc_list[0].start()
     proc_list[1].start()
+
+    while True:
+        if(proc_list[0].is_alive() is False):
+            print("THREAD 1 died")
+            send_message("Thread 1 Died for some reason. Starting it again!!!")
+            proc_list[0]=mp.Process(target=thread1, name="All_Sensor_Board")
+            proc_list[0].start()
+        elif(proc_list[1].is_alive() is False):
+            send_message("Thread 2 Died for some reason. Starting it again!!!")
+            proc_list[1]=mp.Process(target=thread2, name="DS_Sensor_Board")
+            proc_list[1].start()
+        print("I am still running {}".format(proc_list[0].is_alive()))
+        t.sleep(10)
+
+
     proc_list[0].join()
     proc_list[1].join()
+
+
+
+     
+
+# Need to work on the following to get the message passing working.
+    # while True:
+    #     try:
+    #         print("Main Thread Waiting for thread1 period: {}".format((thread1_period_end+(25*60))- t.time()))
+    #         # Wait for thread1_event for 25 mins
+    #         if(thread1_event.wait((thread1_period_end+(0.5*60))- t.time()) is False):
+    #             thread1_period_end=t.time()
+    #             print("Thread 1 did not set the event. Terminating and creating one")
+    #             if(proc_list[0].is_alive):
+    #                 proc_list[0].terminate()
+    #             proc_list[0]=mp.Process(target=thread1, name="All_Sensor_Board")
+    #             proc_list[0].start()
+    #             print(proc_list[0].is_alive())
+                
+    #         # Wait for thread2_event for 25 mins
+    #         if(thread2_event.wait((thread2_period_end+(0.5*60))- t.time()) is False):
+    #             thread2_period_end=t.time()
+    #             print("Thread 2 did not set the event. Terminating and creating one")
+    #             if(proc_list[1].is_alive):
+    #                 proc_list[1].terminate()
+    #             proc_list[1]=mp.Process(target=thread2, name="Dummy")
+    #             proc_list[1].start()
+    #         t.sleep(10)
+
+    #     except Exception as e:
+    #         send_message("Main Process Error: "+str(e))
+    #         time.sleep(1)
+
 
 
 
