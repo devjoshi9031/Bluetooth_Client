@@ -1,7 +1,22 @@
 from influxdb_helper import *
 import time
 from bluepy.btle import *
-        
+import http.client, urllib
+import http.client, urllib
+def send_message(_msg):
+    ''' 
+    This function will send an message to the Pushover API, if some exception is raised 
+    in the while(True) loop. Just an additional feature.
+    '''
+
+    conn = http.client.HTTPSConnection("api.pushover.net:443")
+    conn.request("POST", "/1/messages.json",
+    urllib.parse.urlencode({
+        "token": "a32wsusbc7ouc64jfuhm8dgqi778js",
+        "user": "uq19utktqpezbycu36ijf61pmdzzin",
+        "message": _msg,
+    }), { "Content-type": "application/x-www-form-urlencoded" })
+    conn.getresponse()
 
 class SHT_service():      
 	'''
@@ -75,7 +90,18 @@ class SHT_service():
 		self.sht_temp_chrc_cccd.write(b"\x00\x00",False)
 		self.sht_hum_chrc_cccd.write(b"\x00\x00",False)    
 			
+	def check_data(self):
+		'''
+		Sends message if the temperature value is non-zero and not in the range [30,39]C.
+		Also sends message if the humidity value is non-zero and not in the range [40-60]%.
+		'''
+		if(self.sht_temp_data !=0 and (self.sht_temp_data <=30.00 or self.sht_temp_data>=39.00)):
+			send_message("Critical Temperature Notified in SHT31: {}".format(self.sht_temp_data))
+		if(self.sht_hum_data!=0 and (self.sht_hum_data<=40.00 or self.sht_hum_data>=70.00)):
+			send_message("Critical Humidity Notified in SHT31: {}".format(self.sht_hum_data))
+
 	def prepare_influx_data(self, tag):
+		self.check_data()
 		iso = time.ctime()
 		self.sht_sht_hum_is_fresh=False
 		self.sht_temp_is_fresh=False
@@ -157,7 +183,15 @@ class APDS_service():
 	def disable_notification(self):  
 		self.apds_clear_chrc_cccd.write(b"\x01\x00",False)
 	
+	def check_data(self):
+		'''
+		sends message if the APDS clear data is more than 5.
+		'''
+		if(self.apds_clear_data>=5):
+			send_message("***Caution BeeHive Open*** APDS: {}".format(self.apds_clear_data))
+
 	def prepare_influx_data(self, tag):
+		self.check_data()
 		iso = time.ctime()
 		json_body = [
 		{
@@ -374,7 +408,13 @@ class BMP_service():
 		self.bmp_temp_chrc_cccd.write(b"\x00\x00",False)
 		self.bmp_press_chrc_cccd.write(b"\x00\x00",False)    
 
+	def check_data(self):
+		''' sends message if the temperature value is non zero and also not in the rane [30-39]C.'''
+		if(self.bmp_temp_data!=0 and (self.bmp_temp_data<=30.00 or self.bmp_temp_data>=39.00)):
+			send_message("Critical Temperature Notified in BMP Sensor: {}".format(self.bmp_temp_data))
+
 	def prepare_influx_data(self, tag):
+		self.check_data()
 		iso = time.ctime()
 		self.bmp_temp_is_fresh=False
 		self.bmp_press_is_fresh=False
@@ -488,7 +528,14 @@ class SCD_service():
 		self.scd_hum_chrc_cccd.write(b"\x00\x00",False) 
 		self.scd_co2_chrc_cccd.write(b"\x00\x00", False)   
 
+	def check_data(self):
+		if(self.scd_temp_data!=0 and (self.scd_temp_data<=30.00 or self.scd_temp_data>=39.00)):
+			send_message("Critical Temperature Notified in SCD: {}".format(self.scd_temp_data))
+		if(self.scd_hum_data!=0 and (self.scd_hum_data<=40.00 or self.scd_hum_data>=70.00)):
+			send_message("Critical Humidity Notified in SCD: {}".format(self.scd_hum_data))
+
 	def prepare_influx_data(self, tag):
+		self.check_data()
 		iso = time.ctime()
 		self.scd_co2_is_fresh=False
 		self.scd_temp_is_fresh=False
@@ -505,7 +552,6 @@ class SCD_service():
 				"Humidity": self.scd_hum_data,
 				"Gas": self.scd_co2_data,
             	}
-            
             }
         ]
 		write_influx_data(json_body)
@@ -630,7 +676,22 @@ class DS_service():
 			print("***We should not be here***")
 			return -1
 
+	def check_data(self):
+		'''
+		Method used to check all the temperature values and notify if the values are out of range
+		'''
+		# Code just for the outside DS sensors
+		if (self._num_sensors!=1):
+			for key, val in self.final_address_data.items():
+				if(val!=0.00 and (val<=30.00 or val >=39.00)):
+					send_message("Critical Temperature Notified in Only DS Sensor Board: "+"value: "+str(val)+"Pos: "+str(key))
+		# For the inside board with just one sensor.
+		else:
+			if(self.ds_temp_datas[0]!=0.00 and (self.ds_temp_datas[0]<=30.00 or self.ds_temp_datas[0]>=39.00)):
+				send_message("Critical Tempearture Notified in the All Sensor Board DS1: "+str(self.ds_temp_datas[0]))
+
 	def prepare_influx_data(self, tag):
+		self.check_data()
 		iso = time.ctime()
 		[False for i in self.ds_temp_is_fresh]
 		if(self._num_sensors==1):

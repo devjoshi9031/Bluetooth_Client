@@ -3,7 +3,7 @@ from bluepy.btle import *
 import time as t
 from paramiko import ECDSAKey
 from helper import *
-import http.client, urllib
+
 import traceback
 def print_svcs(per):
     '''
@@ -27,7 +27,7 @@ def connect_device(address):
     per = Peripheral(address, ADDR_TYPE_RANDOM, iface=0)
     if (per.addr == mac_address['DS_Sensor_Board'] or per.addr == mac_address['Dummy']):
         per.setDelegate(notifDelegate_DS_Sensor_Board())
-    elif(per.addr == mac_address['All_Sensor_Board']):
+    elif(per.addr == mac_address['All_Sensor_Board'] or per.addr == mac_address['Obsolete']):
         per.setDelegate(notifDelegate_All_Sensor_Board())
     else:
         print("Check Connect_device function. Need proper Delegate class to proper address")
@@ -35,20 +35,7 @@ def connect_device(address):
     return per
 
 
-def send_message(_msg):
-    ''' 
-    This function will send an message to the Pushover API, if some exception is raised 
-    in the while(True) loop. Just an additional feature.
-    '''
 
-    conn = http.client.HTTPSConnection("api.pushover.net:443")
-    conn.request("POST", "/1/messages.json",
-    urllib.parse.urlencode({
-        "token": "a32wsusbc7ouc64jfuhm8dgqi778js",
-        "user": "uq19utktqpezbycu36ijf61pmdzzin",
-        "message": _msg,
-    }), { "Content-type": "application/x-www-form-urlencoded" })
-    conn.getresponse()
 
 '''
 def check_temperature():
@@ -104,8 +91,8 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
             
         elif(cHandle==BMP.bmp_press_chrc.valHandle):
             BMP.bmp_press_is_fresh=True
-            BMP.bmp_press_data = dat/100
-            print("BMP Pressure: {}".format(dat/100))
+            BMP.bmp_press_data = dat/10
+            print("BMP Pressure: {}".format(dat/10))
             if(BMP.bmp_temp_is_fresh==True):
                 BMP.prepare_influx_data("All_Sensors")
         
@@ -147,7 +134,7 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
         elif(cHandle == SCD.scd_hum_chrc.valHandle):
             SCD.scd_hum_is_fresh=True
             SCD.scd_hum_data = dat/100
-            print("SCD humidity value: {}".format(dat))
+            print("SCD humidity value: {}".format(dat/100))
             if(SCD.scd_temp_is_fresh == True and SCD.scd_co2_is_fresh==True):
                 SCD.prepare_influx_data("All_Sensors")
 
@@ -254,7 +241,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
             DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[8] = [(dat&0xFF),((dat>>8)/100)]
-            print("Address: {}\tDS temp8: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[8]))
+            print("Address: {}\tDS temp9: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[8]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
@@ -314,10 +301,11 @@ def thread1():
         # Try and except will make sure the code doesn't stop.
         # Disconnect and notify user about the exception.
         except Exception as e:
+            print(traceback.format_exc())
             if(peripheral is not None):
                 peripheral.disconnect()
             print("Thread 1: Exception: {}".format(e))
-            # send_message("Thread 1: Exception: {}".format(e))
+            send_message("Thread 1: Exception: {}".format(e))
             time.sleep(10)
 
 
@@ -396,8 +384,8 @@ if __name__ == "__main__":
             send_message("Thread 2 Died for some reason. Starting it again!!!")
             proc_list[1]=mp.Process(target=thread2, name="DS_Sensor_Board")
             proc_list[1].start()
-        # Wait for 15 minutes before doing anything
-        t.sleep(15*60)
+        # Wait for 10 minutes before doing anything
+        t.sleep(10*60)
 
 
     proc_list[0].join()
