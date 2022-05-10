@@ -691,7 +691,7 @@ class DS_service():
 				send_message("Critical Tempearture Notified in the All Sensor Board DS1: "+str(self.ds_temp_datas[0]))
 
 	def prepare_influx_data(self, tag):
-		self.check_data()
+		# self.check_data()
 		iso = time.ctime()
 		[False for i in self.ds_temp_is_fresh]
 		if(self._num_sensors==1):

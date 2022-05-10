@@ -1,9 +1,7 @@
 import multiprocessing as mp
 from bluepy.btle import *
 import time as t
-from paramiko import ECDSAKey
 from helper import *
-
 import traceback
 def print_svcs(per):
     '''
