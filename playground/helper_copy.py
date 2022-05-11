@@ -1,10 +1,10 @@
-from influxdb_helper import *
+from influxdb_helper_copy import *
 import time
 from bluepy.btle import *
 import http.client, urllib
 import csv
 from datetime import datetime
-
+import os
 def send_message(_msg):
     ''' 
     This function will send an message to the Pushover API, if some exception is raised 
@@ -69,7 +69,7 @@ class SHT_service():
 		self.sht_temp_data=0
 		self.sht_hum_data=0
 		format = (datetime.now()).strftime("[%m-%d-%Y %H:%M]")
-		self.csv_file_name = "./SHT/SHT_ALL_SENSOR"+str(format)+".csv"
+		self.csv_file_name = "./playground//SHT/SHT_Overall.csv"
 			
 	def getService(self):
 		self.sht_svc = self.per.getServiceByUUID(self.SHT_PRI_UUID)
@@ -105,9 +105,13 @@ class SHT_service():
 			send_message("Critical Humidity Notified in SHT31: {}".format(self.sht_hum_data))
 	def open_csv_file(self):
 		header = ["time", "Board", "Temperature", "Humidity"]
-		with open(self.csv_file_name, "w") as self.csv_fp:
-			writer = csv.writer(self.csv_fp)
-			writer.writerow(header)
+		if(os.path.exists(self.csv_file_name)):
+			pass			
+		
+		else:
+			with open(self.csv_file_name, "w") as self.csv_fp:
+				writer = csv.writer(self.csv_fp)
+				writer.writerow(header)
 
 	def append_csv_data(self, time, tag):
 		data = [time, tag, self.sht_temp_data, self.sht_hum_data]
@@ -116,7 +120,7 @@ class SHT_service():
 			writer.writerow(data)
 
 	def prepare_influx_data(self, tag):
-		self.check_data()
+		# self.check_data()
 		iso = time.ctime()
 		self.append_csv_data(iso, tag)
 		self.sht_sht_hum_is_fresh=False
@@ -174,6 +178,7 @@ class APDS_service():
 	CCCD_UUID = '2902'
 	
 	def __init__(self, periph, UUID='ebcc60b7-974c-43e1-a973-426e79f9bc6c', clearUUID='e960c9b7-e0ed-441e-b22c-d93252fa0fc6'):
+		self.cwd = os.getcwd()
 		self.APDS_PRI_UUID=UUID
 		self.APDS_CLEAR_UUID=clearUUID
 		self.per = periph
@@ -181,6 +186,8 @@ class APDS_service():
 		self.apds_clear_chrc = None
 		self.apds_clear_chrc_cccd = 0
 		self.apds_clear_data=0
+		format = (datetime.now()).strftime("[%m-%d-%Y %H:%M]")
+		self.csv_file_name = str(self.cwd)+"/playground/APDS/Local_APDS_Data.csv"
 			
 	def getService(self):
 		self.apds_svc = self.per.getServiceByUUID(self.APDS_PRI_UUID)
@@ -207,9 +214,26 @@ class APDS_service():
 		if(self.apds_clear_data>=5):
 			send_message("***Caution BeeHive Open*** APDS: {}".format(self.apds_clear_data))
 
+	def open_csv_file(self):
+		header = ["Time", "Board", "Clear_Light"]
+		if(os.path.exists(self.csv_file_name)):
+			pass
+		else:
+			with open(self.csv_file_name, "w+") as self.csv_fp:
+				writer = csv.writer(self.csv_fp)
+				writer.writerow(header)
+
+	def append_csv_data(self, time, tag):
+		data = [time, tag, self.apds_clear_data]
+		with open(self.csv_file_name, "a") as self.csv_fp:
+			writer = csv.writer(self.csv_fp)
+			writer.writerow(data)
+
 	def prepare_influx_data(self, tag):
-		self.check_data()
+		# self.check_data()
+		
 		iso = time.ctime()
+		self.append_csv_data(iso, tag)
 		json_body = [
 		{
 			"measurement": "APDS",
@@ -225,6 +249,7 @@ class APDS_service():
 		write_influx_data(json_body)	
 
 	def configure(self):
+		self.open_csv_file()
 		self.getService()
 		self.getCharacteristics()
 		self.getCCCD()
@@ -431,7 +456,7 @@ class BMP_service():
 			send_message("Critical Temperature Notified in BMP Sensor: {}".format(self.bmp_temp_data))
 
 	def prepare_influx_data(self, tag):
-		self.check_data()
+		# self.check_data()
 		iso = time.ctime()
 		self.bmp_temp_is_fresh=False
 		self.bmp_press_is_fresh=False
@@ -552,7 +577,7 @@ class SCD_service():
 			send_message("Critical Humidity Notified in SCD: {}".format(self.scd_hum_data))
 
 	def prepare_influx_data(self, tag):
-		self.check_data()
+		# self.check_data()
 		iso = time.ctime()
 		self.scd_co2_is_fresh=False
 		self.scd_temp_is_fresh=False
@@ -708,7 +733,7 @@ class DS_service():
 				send_message("Critical Tempearture Notified in the All Sensor Board DS1: "+str(self.ds_temp_datas[0]))
 
 	def prepare_influx_data(self, tag):
-		# self.check_data()
+		self.check_data()
 		iso = time.ctime()
 		[False for i in self.ds_temp_is_fresh]
 		if(self._num_sensors==1):

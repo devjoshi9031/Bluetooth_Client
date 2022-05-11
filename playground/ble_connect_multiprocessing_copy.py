@@ -1,7 +1,7 @@
 import multiprocessing as mp
 from bluepy.btle import *
 import time as t
-from helper import *
+from helper_copy import *
 import traceback
 def print_svcs(per):
     '''
@@ -23,9 +23,9 @@ def connect_device(address):
     '''
     print("Connecting to {} device...".format(address))
     per = Peripheral(address, ADDR_TYPE_RANDOM, iface=0)
-    if (per.addr == mac_address['DS_Sensor_Board'] or per.addr == mac_address['Obsolete']):
+    if (per.addr == mac_address['DS_Sensor_Board'] or per.addr == mac_address['Dummy']):
         per.setDelegate(notifDelegate_DS_Sensor_Board())
-    elif(per.addr == mac_address['All_Sensor_Board'] or per.addr == mac_address['Dummy']):
+    elif(per.addr == mac_address['All_Sensor_Board'] or per.addr == mac_address['Obsolete']):
         per.setDelegate(notifDelegate_All_Sensor_Board())
     else:
         print("Check Connect_device function. Need proper Delegate class to proper address")
@@ -65,87 +65,87 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
             print("SHT_Temp : "+str(dat/100)+ " degrees")
             # Check if the humidity data is fresh. If fresh sent it.
             if(SHT.sht_hum_is_fresh == True):
-                # SHT.prepare_influx_data("All_Sensors")
+                SHT.prepare_influx_data("All_Sensors")
 
         elif(cHandle==SHT.sht_hum_chrc.valHandle):
             SHT.sht_hum_is_fresh = True
             SHT.sht_hum_data = dat/100
             print("SHT_Humidity :{} %".format(dat/100))
             if(SHT.sht_temp_is_fresh == True):
-                # SHT.prepare_influx_data("All_Sensors")
+                SHT.prepare_influx_data("All_Sensors")
 
         elif(cHandle==APDS.apds_clear_chrc.valHandle):
             APDS.apds_clear_data = dat
             # Add code to send it to flux
             print("APDS Clear Light: {}".format(dat))    
-            # APDS.prepare_influx_data("All_Sensors")
+            APDS.prepare_influx_data("All_Sensors")
         
         elif(cHandle==BMP.bmp_temp_chrc.valHandle):
             BMP.bmp_temp_is_fresh=True
             BMP.bmp_temp_data = dat/100
             print("BMP temp: {}".format(dat/100))
             if (BMP.bmp_press_is_fresh == True):
-                # BMP.prepare_influx_data("All_Sensors")
+                BMP.prepare_influx_data("All_Sensors")
             
         elif(cHandle==BMP.bmp_press_chrc.valHandle):
             BMP.bmp_press_is_fresh=True
             BMP.bmp_press_data = dat/10
             print("BMP Pressure: {}".format(dat/10))
             if(BMP.bmp_temp_is_fresh==True):
-                # BMP.prepare_influx_data("All_Sensors")
+                BMP.prepare_influx_data("All_Sensors")
         
         elif(cHandle == LSM.lsm_accelx_chrc.valHandle):
             LSM.lsm_accelx_is_fresh=True
             LSM.lsm_accelx_data = (dat-32768)/100
             print("LSM AccelX value: {}".format((dat-32768)/100))
             if(LSM.lsm_accely_is_fresh == True and LSM.lsm_accelz_is_fresh==True):
-                # LSM.prepare_influx_data("All_Sensors")
+                LSM.prepare_influx_data("All_Sensors")
         
         elif(cHandle == LSM.lsm_accely_chrc.valHandle):
             LSM.lsm_accely_is_fresh=True
             LSM.lsm_accely_data = (dat-32768)/100
             print("LSM AccelY value: {}".format((dat-32768)/100))
             if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accelz_is_fresh==True):
-                # LSM.prepare_influx_data("All_Sensors")
+                LSM.prepare_influx_data("All_Sensors")
             
         elif(cHandle == LSM.lsm_accelz_chrc.valHandle):
             LSM.lsm_accelz_is_fresh=True
             LSM.lsm_accelz_data = (dat-32768)/100
             print("LSM AccelZ value: {}".format((dat-32768)/100))
             if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accely_is_fresh==True):
-                # LSM.prepare_influx_data("All_Sensors")
+                LSM.prepare_influx_data("All_Sensors")
         
         elif(cHandle == SCD.scd_co2_chrc.valHandle):
             SCD.scd_co2_is_fresh=True
             SCD.scd_co2_data = dat
             print("SCD Co2 value: {}".format(dat))
             if(SCD.scd_hum_is_fresh==True and SCD.scd_temp_is_fresh==True):
-                # SCD.prepare_influx_data("All_Sensors")
+                SCD.prepare_influx_data("All_Sensors")
 
         elif(cHandle == SCD.scd_temp_chrc.valHandle):
             SCD.scd_temp_is_fresh = True
             SCD.scd_temp_data = dat/100
             print("SCD temp value: {}".format(dat/100))
             if(SCD.scd_co2_is_fresh == True and SCD.scd_hum_is_fresh==True):
-                # SCD.prepare_influx_data("All_Sensors")
+                SCD.prepare_influx_data("All_Sensors")
 
         elif(cHandle == SCD.scd_hum_chrc.valHandle):
             SCD.scd_hum_is_fresh=True
             SCD.scd_hum_data = dat/100
             print("SCD humidity value: {}".format(dat/100))
             if(SCD.scd_temp_is_fresh == True and SCD.scd_co2_is_fresh==True):
-                # SCD.prepare_influx_data("All_Sensors")
+                SCD.prepare_influx_data("All_Sensors")
 
         elif(cHandle == DS.ds_temp_chrcs[0].valHandle):
             DS.ds_temp_is_fresh[0]=True
             DS.ds_temp_datas[0] = (dat/100)
             print("DS temp1: {}".format(dat/100))
-            # DS.prepare_influx_data("All_Sensors")
+            DS.prepare_influx_data("All_Sensors")
 
         elif(cHandle == BME.bme_tvoc_chrc.valHandle):
             BME.bme_tvoc_data=dat
             print("ALl Sensors BME_TVOC: {}".format(dat))
-            # BME.prepare_influx_data("All_Sensors")
+            BME.prepare_influx_data("All_Sensors")
 
 
 
@@ -362,7 +362,7 @@ proc_list=[]
 # Code to run for the main process.
 if __name__ == "__main__":
     # Make two processes and append them in the list.
-    proc_list.append(mp.Process(target=thread1, name="Dummy"))
+    proc_list.append(mp.Process(target=thread1, name="Obsolete"))
     proc_list.append(mp.Process(target=thread2, name="DS_Sensor_Board"))
 
 # TODO: Need to support signalling between threads to make sure if a process is stuck we
