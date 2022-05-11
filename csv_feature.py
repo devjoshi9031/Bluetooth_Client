@@ -14,4 +14,5 @@ data = [measurement, time_t, tag, Temp, Humidity, Gas]
 with open("SCD.csv", "w") as f:
     writer=csv.writer(f)
     writer.writerow(header)
-    writer.writerow(data)
+    for i in range(0,10):
+        writer.writerow(data)
