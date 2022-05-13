@@ -23,9 +23,9 @@ def connect_device(address):
     '''
     print("Connecting to {} device...".format(address))
     per = Peripheral(address, ADDR_TYPE_RANDOM, iface=0)
-    if (per.addr == mac_address['DS_Sensor_Board'] or per.addr == mac_address['Dummy']):
+    if (per.addr == mac_address['DS_Sensor_Board'] or per.addr == mac_address['Dummy_DS_Sensor_Board']):
         per.setDelegate(notifDelegate_DS_Sensor_Board())
-    elif(per.addr == mac_address['All_Sensor_Board'] or per.addr == mac_address['Obsolete']):
+    elif(per.addr == mac_address['All_Sensor_Board'] or per.addr == mac_address['Dummy_All_Sensor_Board']):
         per.setDelegate(notifDelegate_All_Sensor_Board())
     else:
         print("Check Connect_device function. Need proper Delegate class to proper address")
@@ -346,7 +346,8 @@ def thread2():
             
 
 # Mac address list to store the address of the sensor boards.
-mac_address={'Dummy':'DE:F7:1D:89:55:D5', 'All_Sensor_Board': 'CF:D8:B3:75:D1:D5','DS_Sensor_Board': 'F9:FB:6E:E2:90:3F', 'Obsolete': 'FC:9A:71:3C:E4:B8'}
+mac_address={'Dummy_DS_Sensor_Board':'DE:F7:1D:89:55:D5','DS_Sensor_Board': 'F9:FB:6E:E2:90:3F',
+                'Dummy_All_Sensor_Board': 'FC:9A:71:3C:E4:B8', 'All_Sensor_Board': 'CF:D8:B3:75:D1:D5'}
 # List to store the number of processes.
 proc_list=[]
 
@@ -362,8 +363,8 @@ proc_list=[]
 # Code to run for the main process.
 if __name__ == "__main__":
     # Make two processes and append them in the list.
-    proc_list.append(mp.Process(target=thread1, name="Obsolete"))
-    proc_list.append(mp.Process(target=thread2, name="DS_Sensor_Board"))
+    proc_list.append(mp.Process(target=thread1, name="Dummy_All_Sensor_Board"))
+    proc_list.append(mp.Process(target=thread2, name="Dummy_DS_Sensor_Board"))
 
 # TODO: Need to support signalling between threads to make sure if a process is stuck we
         # should be able to restart a thread.
