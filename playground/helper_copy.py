@@ -1,8 +1,11 @@
-from influxdb_helper import *
+from influxdb_helper_copy import *
 import time
 from bluepy.btle import *
 import http.client, urllib
-import csv, os
+import csv
+from datetime import datetime
+import os
+
 
 def send_message(_msg):
     ''' 
@@ -67,8 +70,8 @@ class SHT_service():
 		self.sht_hum_is_fresh = False
 		self.sht_temp_data=0
 		self.sht_hum_data=0
-		self.csv_file_name = "/home/dev/new/SHT/Local_SHT_Data.csv"
-		
+		self.csv_file_name = "/home/dev/new/playground/SHT/Local_SHT_Data.csv"
+			
 	def getService(self):
 		self.sht_svc = self.per.getServiceByUUID(self.SHT_PRI_UUID)
 	
@@ -101,7 +104,6 @@ class SHT_service():
 			send_message("Critical Temperature Notified in SHT31: {}".format(self.sht_temp_data))
 		if(self.sht_hum_data!=0 and (self.sht_hum_data<=40.00 or self.sht_hum_data>=70.00)):
 			send_message("Critical Humidity Notified in SHT31: {}".format(self.sht_hum_data))
-
 	def open_csv_file(self):
 		header = ["time", "Board", "Temperature", "Humidity"]
 		if(os.path.exists(self.csv_file_name)):
@@ -120,8 +122,9 @@ class SHT_service():
 			writer.writerow(data)
 
 	def prepare_influx_data(self, tag):
-		self.check_data()
+		# self.check_data()
 		iso = time.ctime()
+		# self.append_csv_data(iso, tag)
 		self.sht_sht_hum_is_fresh=False
 		self.sht_temp_is_fresh=False
 		json_body = [
@@ -177,6 +180,7 @@ class APDS_service():
 	CCCD_UUID = '2902'
 	
 	def __init__(self, periph, UUID='ebcc60b7-974c-43e1-a973-426e79f9bc6c', clearUUID='e960c9b7-e0ed-441e-b22c-d93252fa0fc6'):
+		self.cwd = os.getcwd()
 		self.APDS_PRI_UUID=UUID
 		self.APDS_CLEAR_UUID=clearUUID
 		self.per = periph
@@ -184,7 +188,7 @@ class APDS_service():
 		self.apds_clear_chrc = None
 		self.apds_clear_chrc_cccd = 0
 		self.apds_clear_data=0
-		self.csv_file_name = "/home/dev/new/APDS/Local_APDS_Data.csv"
+		self.csv_file_name = "/home/dev/new/playground/APDS/Local_APDS_Data.csv"
 			
 	def getService(self):
 		self.apds_svc = self.per.getServiceByUUID(self.APDS_PRI_UUID)
@@ -228,8 +232,10 @@ class APDS_service():
 			writer.writerow(data)
 
 	def prepare_influx_data(self, tag):
-		self.check_data()
+		# self.check_data()
+		
 		iso = time.ctime()
+		# self.append_csv_data(tag)
 		json_body = [
 		{
 			"measurement": "APDS",
@@ -316,7 +322,7 @@ class LSM_service():
 		self.lsm_accely_is_fresh=False
 		self.lsm_accelz_data=0
 		self.lsm_accelz_is_fresh=False
-		self.csv_file_name = "/home/dev/new/LSM/Local_LSM_Data.csv"
+		self.csv_file_name = "/home/dev/new/playground/LSM/Local_LSM_Data.csv"
                 
 	def getService(self):
 		self.lsm_svc = self.per.getServiceByUUID(self.LSM_PRIM_UUID)
@@ -363,6 +369,7 @@ class LSM_service():
 
 	def prepare_influx_data(self, tag):
 		iso = time.ctime()
+		# self.append_csv_data(tag)
 		self.lsm_accelx_is_fresh=False
 		self.lsm_accely_is_fresh=False
 		self.lsm_accelz_is_fresh=False
@@ -437,7 +444,7 @@ class BMP_service():
 		self.bmp_press_data=0
 		self.bmp_temp_is_fresh = False
 		self.bmp_press_is_fresh = False
-		self.csv_file_name = "/home/dev/new/BMP/Local_BMP_Data.csv"
+		self.csv_file_name = "/home/dev/new/playground/BMP/Local_BMP_Data.csv"
 		
 	def getService(self):
 		self.bmp_svc = self.per.getServiceByUUID(self.BMP_PRI_UUID)
@@ -487,8 +494,9 @@ class BMP_service():
 			writer.writerow(data)
 
 	def prepare_influx_data(self, tag):
-		self.check_data()
+		# self.check_data()
 		iso = time.ctime()
+		# self.append_csv_data(tag)
 		self.bmp_temp_is_fresh=False
 		self.bmp_press_is_fresh=False
 		json_body = [
@@ -574,8 +582,8 @@ class SCD_service():
 		self.scd_temp_is_fresh=False
 		self.scd_hum_is_fresh=False
 		self.scd_co2_is_fresh=False
-		self.csv_file_name = "/home/dev/new/SCD/Local_SCD_Data.csv"
-			
+		self.csv_file_name = "/home/dev/new/playground/SCD/Local_SCD_Data.csv"
+
 	def getService(self):
 		self.scd_svc = self.per.getServiceByUUID(self.SCD_PRI_UUID)
 	
@@ -626,8 +634,9 @@ class SCD_service():
 			writer.writerow(data)
 
 	def prepare_influx_data(self, tag):
-		self.check_data()
+		# self.check_data()
 		iso = time.ctime()
+		# self.append_csv_data(tag)
 		self.scd_co2_is_fresh=False
 		self.scd_temp_is_fresh=False
 		self.scd_hum_is_fresh=False
@@ -700,9 +709,8 @@ class DS_service():
 		self.final_address_data = {'S1ULC':0.00, 'S1URC': 0.00, 'S1LLC':0.00, 'S1LRC':0.00, 
 									'S2ULC': 0.00, 'S2URC': 0.00, 'S2LLC':0.00, 'S2LRC':0.00,
 									'Outside': 0.00}
-		self.csv_file_name_only_ds = "/home/dev/new/DS/Local_DS_Data_Only_DS_Board.csv"
-		self.csv_file_name_all_sensor_board = "/home/dev/new/DS/Local_DS_Data_All_Sensor_Board.csv"
-
+		self.csv_file_name_only_ds = "/home/dev/new/playground/DS/Local_DS_Data_Only_DS_Board.csv"
+		self.csv_file_name_all_sensor_board = "/home/dev/new/playground/DS/Local_DS_Data_All_Sensor_Board.csv"
 
 	def getService(self):
 		self.ds_svc = self.per.getServiceByUUID(self.DS_PRI_UUID)
@@ -737,7 +745,7 @@ class DS_service():
 		S2URC: 0x2B
 		S2LLC: 0X2F
 		S2LRC: 0XD2
-		Out:   0x1D
+		Outside:   0x1D
 		'''
 		if address == 0x1B:
 			self.final_address_data['S1ULC']=data
@@ -786,7 +794,7 @@ class DS_service():
 
 	def open_csv_file(self):
 		if(self._num_sensors==1):
-			header1 = ["Time", "Board", "Temperature"]
+			header1 = ["Time", "Board", "Temperature Sensor 1"]
 		
 			if(os.path.exists(self.csv_file_name_all_sensor_board)):
 				pass
@@ -796,7 +804,8 @@ class DS_service():
 					writer.writerow(header1)
 
 		elif(self._num_sensors==9):
-			header2 = ["Time", "Board", "S1ULC(TEMP)", "S1URC(TEMP)", "S1LLC(TEMP)", "S1LRC(TEMP)", "S2ULC(TEMP)", "S2URC(TEMP)", "S2LLC(TEMP)", "S2LRC(TEMP)", "Outside(TEMP)"]
+			header2 = ["Time", "Board", "S1ULC", "S1URC", "S1LLC", "S1LRC", "S2ULC", "S2URC", "S2LLC", "S2LRC", "Outside"]
+
 			if(os.path.exists(self.csv_file_name_only_ds)):
 				pass
 			else:
@@ -824,6 +833,7 @@ class DS_service():
 	def prepare_influx_data(self, tag):
 		# self.check_data()
 		iso = time.ctime()
+		# self.append_csv_data(tag)
 		[False for i in self.ds_temp_is_fresh]
 		if(self._num_sensors==1):
 			json_body = [
@@ -882,8 +892,8 @@ class Battery_service():
 		self.battery_chrc=None
 		self.battery_chrc_cccd=0
 		self.battery_data=0
-		self.csv_file_name = "/home/dev/new/Battery/Local_Battery_Data.csv"
-
+		self.csv_file_name = "/home/dev/new/playground/Battery/Local_Battery_Data.csv"
+		
 	def getService(self):
 		self.battery_svc = self.per.getServiceByUUID(self.BATT_UUID)
 	
@@ -917,6 +927,7 @@ class Battery_service():
 
 	def prepare_influx_data(self,tag):
 		iso = time.ctime()
+		self.append_csv_data(tag)
 		json_body = [
         {
             "measurement": "Battery",
@@ -979,7 +990,7 @@ class BME_service():
 		self.bme_tvoc_chrc = None
 		self.bme_tvoc_chrc_cccd = None
 		self.bme_tvoc_data=0
-		self.csv_file_name = "/home/dev/new/BME/Local_BME_Data.csv"
+		self.csv_file_name = "/home/dev/new/playground/BME/Local_BME_Data.csv"
 
 	def getService(self):
 		self.bme_svc = self.per.getServiceByUUID(self.BME_PRI_UUID)
@@ -1018,6 +1029,7 @@ class BME_service():
 
 	def prepare_influx_data(self, tag):
 		iso = time.ctime()
+		# self.append_csv_data(tag)
 		json_body = [
         {
             "measurement": "BME",

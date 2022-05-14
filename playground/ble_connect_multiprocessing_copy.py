@@ -1,7 +1,7 @@
 import multiprocessing as mp
 from bluepy.btle import *
 import time as t
-from helper import *
+from helper_copy import *
 import traceback
 import urllib.request
 
@@ -19,7 +19,7 @@ def print_svcs(per):
 
 
 def connect_device(address):
-    '''
+    ''' 
     This function will connect to the device with given address BLE device using bluepy module.
     @return: Peripheral object that was returned after connection.
     '''
@@ -42,6 +42,10 @@ def check_internet(host='http://google.com'):
         return False
 
 
+'''
+def check_temperature():
+    this function should check 
+'''
 class notifDelegate_All_Sensor_Board(DefaultDelegate):
     '''
     Delegate function. This function will be called everytime a notification is received 
@@ -82,12 +86,13 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
                 if(check_internet()):
                     SHT.prepare_influx_data("All_Sensors")
                 SHT.append_csv_data("All_Sensors")
+                
 
         elif(cHandle==APDS.apds_clear_chrc.valHandle):
             APDS.apds_clear_data = dat
             # Add code to send it to flux
-            print("APDS Clear Light: {}".format(dat))    
-            if(check_internet()):
+            print("APDS Clear Light: {}".format(dat))   
+            if(check_internet()): 
                 APDS.prepare_influx_data("All_Sensors")
             APDS.append_csv_data("All_Sensors")
         
@@ -145,7 +150,6 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
                     SCD.prepare_influx_data("All_Sensors")
                 SCD.append_csv_data("All_Sensors")
 
-
         elif(cHandle == SCD.scd_temp_chrc.valHandle):
             SCD.scd_temp_is_fresh = True
             SCD.scd_temp_data = dat/100
@@ -155,7 +159,6 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
                     SCD.prepare_influx_data("All_Sensors")
                 SCD.append_csv_data("All_Sensors")
 
-
         elif(cHandle == SCD.scd_hum_chrc.valHandle):
             SCD.scd_hum_is_fresh=True
             SCD.scd_hum_data = dat/100
@@ -164,7 +167,6 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
                 if(check_internet()):
                     SCD.prepare_influx_data("All_Sensors")
                 SCD.append_csv_data("All_Sensors")
-
 
         elif(cHandle == DS.ds_temp_chrcs[0].valHandle):
             DS.ds_temp_is_fresh[0]=True
@@ -180,7 +182,6 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
             if(check_internet()):
                 BME.prepare_influx_data("All_Sensors")
             BME.append_csv_data("All_Sensors")
-
 
 
 
@@ -209,7 +210,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             print("Address: {}\tDS temp1: {}".format(hex(DS_SENSOR_DS.ds_temp_datas[0][0]),DS_SENSOR_DS.ds_temp_datas[0][1]))
             # print("Address: {}\tDS temp1: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[0]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                 if(check_internet()):
+                if(check_internet()):
                     DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
 
@@ -223,6 +224,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
                     DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
 
+
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[2].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
             DS_SENSOR_DS.ds_temp_is_fresh[index]=True
@@ -232,6 +234,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
                 if(check_internet()):
                     DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[3].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
@@ -289,6 +292,8 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[8] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp9: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[8]))
+            # DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
+            DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
                 if(check_internet()):
                     DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
@@ -302,7 +307,6 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_BATT.append_csv_data("Only_DS_Sensors")
 
 
-
 def thread1():
     ''' 
     THREAD1 FUNCTION:
@@ -310,7 +314,7 @@ def thread1():
     This function will be used by the first thread. It will connect to the all_sensor_board.
     Continously wait for the notification.
     '''
-    _is_ble_connected_thread1 = False
+    _is_ble_connected = False
     while(True):
         try:
             
@@ -318,7 +322,8 @@ def thread1():
 
             # notifdelegate class needs to access these classes, so make them global.
             global SHT, APDS, BMP, LSM, SCD, DS, BATT, BME, thread1_period_end
-            if(_is_ble_connected_thread1==False):
+            
+            if(_is_ble_connected==False):
                 peripheral=None
                 SHT=APDS=BMP=LSM=SCD=DS=BATT=BME=None
                 peripheral = connect_device(mac_address[str(mp.current_process().name)])
@@ -345,7 +350,7 @@ def thread1():
                 SCD.configure()
                 DS.configure()
                 BME.configure()
-                _is_ble_connected_thread1=True
+                _is_ble_connected=True
 
             print("Thread 1: Done Configuration! Waiting for notification!!")
             
@@ -360,38 +365,35 @@ def thread1():
             print(traceback.format_exc())
             if(peripheral is not None):
                 peripheral.disconnect()
-                _is_ble_connected_thread1=False
+                _is_ble_connected=False
             print("Thread 1: Bluetooth Exception: {}".format(e))
-            send_message("Thread 1: Bluetooth Exception: {}".format(e))
+            # send_message("Thread 1: Exception: {}".format(e))
             time.sleep(10)
         except Exception as e:
             print("Other Exception: \n"+str(traceback.format_exc()))
+            
 
 
 def thread2():
-    _is_ble_connected_thread2=False
     while(True):
         try:
-            global DS_SENSOR_DS, DS_SENSOR_BATT
+            peripheral=None
             t.sleep(10)
             print("Thread 2: Connecting to peripheral!!!")
-            if(_is_ble_connected_thread2==False):
-                peripheral=None
-                peripheral = connect_device(mac_address[str(mp.current_process().name)])
-                print_svcs(peripheral)
-                # notifdelegate class needs to access this class, so make it global
-                
-                print("Thread 2: Initiating DS sensor class!!!")
-                DS_SENSOR_DS = DS_service(periph=peripheral, 
-                                        UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', 
-                                        num_sensors=9)
-                DS_SENSOR_BATT = Battery_service(periph=peripheral, 
-                                                UUID='b9ad8153-8145-4575-9d1a-ab745b5b2d08', 
-                                                BATTERY_VAL_UUID='e0482d82-3a6f-4f52-b35f-c86eda8747fd')
-                print("Thread 2: Configuring DS sensor class!!!")
-                DS_SENSOR_DS.configure()
-                DS_SENSOR_BATT.configure()
-                _is_ble_connected_thread2=True
+            peripheral = connect_device(mac_address[str(mp.current_process().name)])
+            print_svcs(peripheral)
+            # notifdelegate class needs to access this class, so make it global
+            global DS_SENSOR_DS, DS_SENSOR_BATT
+            print("Thread 2: Initiating DS sensor class!!!")
+            DS_SENSOR_DS = DS_service(periph=peripheral, 
+                                      UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', 
+                                      num_sensors=9)
+            DS_SENSOR_BATT = Battery_service(periph=peripheral, 
+                                             UUID='b9ad8153-8145-4575-9d1a-ab745b5b2d08', 
+                                             BATTERY_VAL_UUID='e0482d82-3a6f-4f52-b35f-c86eda8747fd')
+            print("Thread 2: Configuring DS sensor class!!!")
+            DS_SENSOR_DS.configure()
+            DS_SENSOR_BATT.configure()
 
             print("Thread 2: Done Configuration! Waiting for notification!!")
             # Wait indefinitely to receive notifications from the connection.
@@ -401,16 +403,13 @@ def thread2():
         
         # Try and except will make sure the code doesn't stop.
         # Disconnect and notify user about the exception.
-        except BTLEException as e:
+        except Exception as e:
             print(traceback.format_exc())
             if(peripheral is not None):
                 peripheral.disconnect()
-                _is_ble_connected_thread2=False
-            print("Thread 2: Bluetooth Exception: {}".format(e))
-            send_message("Thread 2: Bluetooth Exception: {}".format(e))
+            print("Thread 2: Exception: {}".format(e))
+            # send_message("Thread 2: Exception: {}".format(e))
             time.sleep(10)
-        except Exception as e:
-            print("Other Exception: \n"+str(traceback.format_exc()))
             
 
 # Mac address list to store the address of the sensor boards.
@@ -431,8 +430,8 @@ proc_list=[]
 # Code to run for the main process.
 if __name__ == "__main__":
     # Make two processes and append them in the list.
-    proc_list.append(mp.Process(target=thread1, name="All_Sensor_Board"))
-    proc_list.append(mp.Process(target=thread2, name="DS_Sensor_Board"))
+    proc_list.append(mp.Process(target=thread1, name="Dummy_All_Sensor_Board"))
+    proc_list.append(mp.Process(target=thread2, name="Dummy_DS_Sensor_Board"))
 
 # TODO: Need to support signalling between threads to make sure if a process is stuck we
         # should be able to restart a thread.
@@ -444,11 +443,11 @@ if __name__ == "__main__":
     while True:
         if(proc_list[0].is_alive() is False):
             print("THREAD 1 died")
-            send_message("Thread 1 Died for some reason. Starting it again!!!")
+            # send_message("Thread 1 Died for some reason. Starting it again!!!")
             proc_list[0]=mp.Process(target=thread1, name="All_Sensor_Board")
             proc_list[0].start()
         elif(proc_list[1].is_alive() is False):
-            send_message("Thread 2 Died for some reason. Starting it again!!!")
+            # send_message("Thpread 2 Died for some reason. Starting it again!!!")
             proc_list[1]=mp.Process(target=thread2, name="DS_Sensor_Board")
             proc_list[1].start()
         # Wait for 10 minutes before doing anything
