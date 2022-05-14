@@ -3,6 +3,8 @@ from bluepy.btle import *
 import time as t
 from helper import *
 import traceback
+import urllib.request
+
 def print_svcs(per):
     '''
     This will print all the characteristics of all the services in a peripheral connection.
@@ -32,13 +34,14 @@ def connect_device(address):
     print("Successfully Connected to {} device\n".format(address))
     return per
 
+def check_internet(host='http://google.com'):
+    try:
+        urllib.request.urlopen(host) #Python 3.x
+        return True
+    except:
+        return False
 
 
-
-'''
-def check_temperature():
-    this function should check 
-'''
 class notifDelegate_All_Sensor_Board(DefaultDelegate):
     '''
     Delegate function. This function will be called everytime a notification is received 
