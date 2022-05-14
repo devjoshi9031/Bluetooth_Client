@@ -824,7 +824,8 @@ class DS_service():
 	def prepare_influx_data(self, tag):
 		# self.check_data()
 		iso = time.ctime()
-		[False for i in self.ds_temp_is_fresh]
+		for i in range(0, len(self.ds_temp_is_fresh)):
+			self.ds_temp_is_fresh=False
 		if(self._num_sensors==1):
 			json_body = [
 			{
