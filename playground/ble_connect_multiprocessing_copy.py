@@ -65,7 +65,6 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
             BATT.battery_data = dat/100
             print("All_Sensors Battery: {:.3f}".format(dat))
             if(check_internet()):
-                print("Internet is on and sending data for Battery")
                 BATT.prepare_influx_data("All_Sensors")
             BATT.append_csv_data("All_Sensors")
         elif(cHandle==SHT.sht_temp_chrc.valHandle):
