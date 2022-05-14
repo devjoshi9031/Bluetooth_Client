@@ -209,8 +209,8 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             print("Address: {}\tDS temp1: {}".format(hex(DS_SENSOR_DS.ds_temp_datas[0][0]),DS_SENSOR_DS.ds_temp_datas[0][1]))
             # print("Address: {}\tDS temp1: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[0]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                 if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
+                if(check_internet()):
+                     DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[1].valHandle):

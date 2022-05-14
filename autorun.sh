@@ -1,5 +1,5 @@
 while true; do
-	cd ~/new
+	cd /home/dev/new
  	python3 ble_connect_multiprocessing.py
 	echo "# Error happened during the code execution!"
 	sleep 5
