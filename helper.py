@@ -825,7 +825,7 @@ class DS_service():
 		# self.check_data()
 		iso = time.ctime()
 		for i in range(0, len(self.ds_temp_is_fresh)):
-			self.ds_temp_is_fresh=False
+			self.ds_temp_is_fresh[i]=False
 		if(self._num_sensors==1):
 			json_body = [
 			{
