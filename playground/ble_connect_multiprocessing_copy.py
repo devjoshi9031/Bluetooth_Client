@@ -203,7 +203,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
         dat=int.from_bytes(data, byteorder=sys.byteorder)
         if(cHandle == DS_SENSOR_DS.ds_temp_chrcs[0].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[0]=True
             # Here we have to give temp_data a list of address and data value.
             # This is redundant for all the chrc handles but let it be for now.
             DS_SENSOR_DS.ds_temp_datas[0] = [(dat&0xFF),((dat>>8)/100)]
@@ -216,7 +216,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[1].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[1]=True
             DS_SENSOR_DS.ds_temp_datas[1] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp2: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[1]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
@@ -227,7 +227,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[2].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[2]=True
             DS_SENSOR_DS.ds_temp_datas[2] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp3: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[2]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
@@ -238,7 +238,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[3].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[3]=True
             DS_SENSOR_DS.ds_temp_datas[3] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp4: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[3]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
@@ -249,7 +249,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[4].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[4]=True
             DS_SENSOR_DS.ds_temp_datas[4] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp5: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[4]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
@@ -259,7 +259,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[5].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[5]=True
             DS_SENSOR_DS.ds_temp_datas[5] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp6: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[5]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
@@ -269,7 +269,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[6].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[6]=True
             DS_SENSOR_DS.ds_temp_datas[6] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp7: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[6]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
@@ -279,7 +279,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[7].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[7]=True
             DS_SENSOR_DS.ds_temp_datas[7] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp8: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[7]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
@@ -289,7 +289,7 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[8].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[8]=True
             DS_SENSOR_DS.ds_temp_datas[8] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp9: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[8]))
             # DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")

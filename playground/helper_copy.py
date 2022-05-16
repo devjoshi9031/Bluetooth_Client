@@ -835,6 +835,7 @@ class DS_service():
 		iso = time.ctime()
 		# self.append_csv_data(tag)
 		for i in range(0, len(self.ds_temp_is_fresh)):
+			print(i)
 			self.ds_temp_is_fresh[i]=False
 		if(self._num_sensors==1):
 			json_body = [
