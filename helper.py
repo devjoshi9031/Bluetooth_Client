@@ -113,6 +113,8 @@ class SHT_service():
 				writer.writerow(header)
 
 	def append_csv_data(self,tag):
+		self.sht_sht_hum_is_fresh=False
+		self.sht_temp_is_fresh=False		
 		time_t = time.ctime()
 		data = [time_t, tag, self.sht_temp_data, self.sht_hum_data]
 		with open(self.csv_file_name, "a") as self.csv_fp:
@@ -355,6 +357,9 @@ class LSM_service():
 				writer.writerow(header)
 
 	def append_csv_data(self, tag):
+		self.lsm_accelx_is_fresh=False
+		self.lsm_accely_is_fresh=False
+		self.lsm_accelz_is_fresh=False
 		time_t = time.ctime()
 		data = [time_t, tag, self.lsm_accelx_data, self.lsm_accely_data, self.lsm_accelz_data]
 		with open(self.csv_file_name, "a") as self.csv_fp:
@@ -480,6 +485,8 @@ class BMP_service():
 				writer.writerow(header)
 
 	def append_csv_data(self,tag):
+		self.bmp_temp_is_fresh=False
+		self.bmp_press_is_fresh=False		
 		time_t = time.ctime()
 		data = [time_t, tag, self.bmp_temp_data, self.bmp_press_data]
 		with open(self.csv_file_name, "a") as self.csv_fp:
@@ -619,6 +626,9 @@ class SCD_service():
 				writer.writerow(header)
 
 	def append_csv_data(self,tag):
+		self.scd_co2_is_fresh=False
+		self.scd_temp_is_fresh=False
+		self.scd_hum_is_fresh=False	
 		time_t = time.ctime()
 		data = [time_t, tag, self.scd_temp_data, self.scd_hum_data, self.scd_co2_data]
 		with open(self.csv_file_name, "a") as self.csv_fp:
@@ -805,6 +815,8 @@ class DS_service():
 					writer.writerow(header2)
 
 	def append_csv_data(self,tag):
+		for i in range(0, len(self.ds_temp_is_fresh)):
+			self.ds_temp_is_fresh[i]=False		
 		time_t = time.ctime()
 		# If statement for the all sensor board (Inner Board)
 		if(self._num_sensors==1):

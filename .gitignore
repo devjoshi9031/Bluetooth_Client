@@ -1,2 +1,10 @@
 __py*
 *.csv
+./playground/APDS
+./playground/SCD
+./playground/SHT
+./playground/BMP
+./playground/BME
+./playground/Battery
+./playground/LSM
+./playground/DS

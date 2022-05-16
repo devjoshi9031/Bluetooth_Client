@@ -5,3 +5,4 @@ rm -rf ./BMP/*.csv
 rm -rf ./LSM/*.csv
 rm -rf ./DS/*.csv
 rm -rf ./SHT/*.csv
+rm -rf ./BME/*.csv
