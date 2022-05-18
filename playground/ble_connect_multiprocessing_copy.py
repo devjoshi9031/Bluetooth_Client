@@ -34,7 +34,7 @@ def connect_device(address):
     print("Successfully Connected to {} device\n".format(address))
     return per
 
-def check_internet(host='http://google.com'):
+def check_internet(host='http://149.165.168.73:8086'):
     try:
         urllib.request.urlopen(host) #Python 3.x
         return True
