@@ -1,5 +1,6 @@
 __py*
 *.csv
+*.sh
 ./playground/APDS
 ./playground/SCD
 ./playground/SHT
