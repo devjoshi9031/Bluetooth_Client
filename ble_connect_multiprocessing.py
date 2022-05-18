@@ -4,6 +4,16 @@ import time as t
 from helper import *
 import traceback
 import urllib.request
+import logging as log
+
+# Initializing logging info for the log file.
+format = "%(asctime)s.%(msecs)03d: %(message)s"
+log.basicConfig(filename="Final_Application_logfile.log",
+                    filemode="a",
+                    format=format,
+                    level = log.INFO,
+                    datefmt="%H:%M:%S")
+
 
 def print_svcs(per):
     '''
@@ -34,7 +44,7 @@ def connect_device(address):
     print("Successfully Connected to {} device\n".format(address))
     return per
 
-def check_internet(host='http://google.com'):
+def check_internet(host='http://149.165.168.73:8086'):
     try:
         urllib.request.urlopen(host) #Python 3.x
         return True
@@ -363,9 +373,11 @@ def thread1():
                 _is_ble_connected_thread1=False
             print("Thread 1: Bluetooth Exception: {}".format(e))
             send_message("Thread 1: Bluetooth Exception: {}".format(e))
+            log.error(e)
             time.sleep(10)
         except Exception as e:
             print("Other Exception: \n"+str(traceback.format_exc()))
+            log.error(e)
 
 
 def thread2():
@@ -408,9 +420,11 @@ def thread2():
                 _is_ble_connected_thread2=False
             print("Thread 2: Bluetooth Exception: {}".format(e))
             send_message("Thread 2: Bluetooth Exception: {}".format(e))
+            log.error(e)
             time.sleep(10)
         except Exception as e:
             print("Other Exception: \n"+str(traceback.format_exc()))
+            log.error(e)
             
 
 # Mac address list to store the address of the sensor boards.
@@ -443,11 +457,12 @@ if __name__ == "__main__":
 # If not just respawn that thread and notify user.
     while True:
         if(proc_list[0].is_alive() is False):
-            print("THREAD 1 died")
+            log.error("Thread 1 died")
             send_message("Thread 1 Died for some reason. Starting it again!!!")
             proc_list[0]=mp.Process(target=thread1, name="All_Sensor_Board")
             proc_list[0].start()
         elif(proc_list[1].is_alive() is False):
+            log.error("Thread 2 died")
             send_message("Thread 2 Died for some reason. Starting it again!!!")
             proc_list[1]=mp.Process(target=thread2, name="DS_Sensor_Board")
             proc_list[1].start()
