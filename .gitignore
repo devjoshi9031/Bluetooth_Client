@@ -9,3 +9,4 @@ __py*
 ./playground/Battery
 ./playground/LSM
 ./playground/DS
+*.log

@@ -12,8 +12,9 @@ log.basicConfig(filename="Final_Application_logfile.log",
                     filemode="a",
                     format=format,
                     level = log.INFO,
-                    datefmt="%H:%M:%S")
+                    datefmt="%d-%b-%y %H:%M:%S")
 
+INFLUXDB_REPORT=True
 
 def print_svcs(per):
     '''
@@ -44,7 +45,7 @@ def connect_device(address):
     print("Successfully Connected to {} device\n".format(address))
     return per
 
-def check_internet(host='http://149.165.168.73:8086'):
+def check_internet(host='http://149.165.159.180:8086'):
     try:
         urllib.request.urlopen(host) #Python 3.x
         return True
@@ -70,9 +71,9 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
         if(cHandle == BATT.battery_chrc.valHandle):
             BATT.battery_data = dat/100
             print("All_Sensors Battery: {:.3f}".format(dat))
-            if(check_internet()):
-                BATT.prepare_influx_data("All_Sensors")
             BATT.append_csv_data("All_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                BATT.prepare_influx_data("All_Sensors")
         elif(cHandle==SHT.sht_temp_chrc.valHandle):
             SHT.sht_temp_is_fresh = True
             # Make something here to make sure that this is a fresh data
@@ -80,80 +81,80 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
             print("SHT_Temp : "+str(dat/100)+ " degrees")
             # Check if the humidity data is fresh. If fresh sent it.
             if(SHT.sht_hum_is_fresh == True ):
-                if(check_internet()):
-                    SHT.prepare_influx_data("All_Sensors")
                 SHT.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SHT.prepare_influx_data("All_Sensors")
 
         elif(cHandle==SHT.sht_hum_chrc.valHandle):
             SHT.sht_hum_is_fresh = True
             SHT.sht_hum_data = dat/100
             print("SHT_Humidity :{} %".format(dat/100))
             if(SHT.sht_temp_is_fresh == True):
-                if(check_internet()):
-                    SHT.prepare_influx_data("All_Sensors")
                 SHT.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SHT.prepare_influx_data("All_Sensors")
 
         elif(cHandle==APDS.apds_clear_chrc.valHandle):
             APDS.apds_clear_data = dat
             # Add code to send it to flux
             print("APDS Clear Light: {}".format(dat))    
-            if(check_internet()):
-                APDS.prepare_influx_data("All_Sensors")
             APDS.append_csv_data("All_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                APDS.prepare_influx_data("All_Sensors")
         
         elif(cHandle==BMP.bmp_temp_chrc.valHandle):
             BMP.bmp_temp_is_fresh=True
             BMP.bmp_temp_data = dat/100
             print("BMP temp: {}".format(dat/100))
             if (BMP.bmp_press_is_fresh == True):
-                if(check_internet()):
-                    BMP.prepare_influx_data("All_Sensors")
                 BMP.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    BMP.prepare_influx_data("All_Sensors")
             
         elif(cHandle==BMP.bmp_press_chrc.valHandle):
             BMP.bmp_press_is_fresh=True
             BMP.bmp_press_data = dat/10
             print("BMP Pressure: {}".format(dat/10))
             if(BMP.bmp_temp_is_fresh==True):
-                if(check_internet()):
-                    BMP.prepare_influx_data("All_Sensors")
                 BMP.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    BMP.prepare_influx_data("All_Sensors")
         
         elif(cHandle == LSM.lsm_accelx_chrc.valHandle):
             LSM.lsm_accelx_is_fresh=True
             LSM.lsm_accelx_data = (dat-32768)/100
             print("LSM AccelX value: {}".format((dat-32768)/100))
             if(LSM.lsm_accely_is_fresh == True and LSM.lsm_accelz_is_fresh==True ):
-                if(check_internet()):
-                    LSM.prepare_influx_data("All_Sensors")
                 LSM.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    LSM.prepare_influx_data("All_Sensors")
         
         elif(cHandle == LSM.lsm_accely_chrc.valHandle):
             LSM.lsm_accely_is_fresh=True
             LSM.lsm_accely_data = (dat-32768)/100
             print("LSM AccelY value: {}".format((dat-32768)/100))
             if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accelz_is_fresh==True):
-                if(check_internet()):
-                    LSM.prepare_influx_data("All_Sensors")
                 LSM.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    LSM.prepare_influx_data("All_Sensors")
             
         elif(cHandle == LSM.lsm_accelz_chrc.valHandle):
             LSM.lsm_accelz_is_fresh=True
             LSM.lsm_accelz_data = (dat-32768)/100
             print("LSM AccelZ value: {}".format((dat-32768)/100))
             if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accely_is_fresh==True):
-                if(check_internet()):
-                    LSM.prepare_influx_data("All_Sensors")
                 LSM.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    LSM.prepare_influx_data("All_Sensors")
         
         elif(cHandle == SCD.scd_co2_chrc.valHandle):
             SCD.scd_co2_is_fresh=True
             SCD.scd_co2_data = dat
             print("SCD Co2 value: {}".format(dat))
             if(SCD.scd_hum_is_fresh==True and SCD.scd_temp_is_fresh==True):
-                if(check_internet()):
-                    SCD.prepare_influx_data("All_Sensors")
                 SCD.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SCD.prepare_influx_data("All_Sensors")
 
 
         elif(cHandle == SCD.scd_temp_chrc.valHandle):
@@ -161,9 +162,9 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
             SCD.scd_temp_data = dat/100
             print("SCD temp value: {}".format(dat/100))
             if(SCD.scd_co2_is_fresh == True and SCD.scd_hum_is_fresh==True):
-                if(check_internet()):
-                    SCD.prepare_influx_data("All_Sensors")
                 SCD.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SCD.prepare_influx_data("All_Sensors")
 
 
         elif(cHandle == SCD.scd_hum_chrc.valHandle):
@@ -171,25 +172,25 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
             SCD.scd_hum_data = dat/100
             print("SCD humidity value: {}".format(dat/100))
             if(SCD.scd_temp_is_fresh == True and SCD.scd_co2_is_fresh==True):
-                if(check_internet()):
-                    SCD.prepare_influx_data("All_Sensors")
                 SCD.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SCD.prepare_influx_data("All_Sensors")
 
 
         elif(cHandle == DS.ds_temp_chrcs[0].valHandle):
             DS.ds_temp_is_fresh[0]=True
             DS.ds_temp_datas[0] = (dat/100)
             print("DS temp1: {}".format(dat/100))
-            if(check_internet()):
-                DS.prepare_influx_data("All_Sensors")
             DS.append_csv_data("All_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                DS.prepare_influx_data("All_Sensors")
 
         elif(cHandle == BME.bme_tvoc_chrc.valHandle):
             BME.bme_tvoc_data=dat
             print("ALl Sensors BME_TVOC: {}".format(dat))
-            if(check_internet()):
-                BME.prepare_influx_data("All_Sensors")
             BME.append_csv_data("All_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                BME.prepare_influx_data("All_Sensors")
 
 
 
@@ -219,9 +220,9 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             print("Address: {}\tDS temp1: {}".format(hex(DS_SENSOR_DS.ds_temp_datas[0][0]),DS_SENSOR_DS.ds_temp_datas[0][1]))
             # print("Address: {}\tDS temp1: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[0]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                     DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                     DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[1].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
@@ -229,9 +230,9 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_DS.ds_temp_datas[1] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp2: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[1]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[2].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
@@ -239,9 +240,9 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_DS.ds_temp_datas[2] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp3: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[2]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[3].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
@@ -249,9 +250,9 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_DS.ds_temp_datas[3] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp4: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[3]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[4].valHandle):
@@ -260,9 +261,9 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_DS.ds_temp_datas[4] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp5: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[4]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[5].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
@@ -270,9 +271,9 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_DS.ds_temp_datas[5] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp6: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[5]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[6].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
@@ -280,9 +281,9 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_DS.ds_temp_datas[6] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp7: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[6]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[7].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
@@ -290,9 +291,9 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_DS.ds_temp_datas[7] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp8: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[7]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[8].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
@@ -300,16 +301,16 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
             DS_SENSOR_DS.ds_temp_datas[8] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp9: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[8]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_BATT.battery_chrc.valHandle):
             DS_SENSOR_BATT.battery_data = dat/100
             print("Only DS Sensor Battery: {:.3f}".format(DS_SENSOR_BATT.battery_data))
-            if(check_internet()):
-                DS_SENSOR_BATT.prepare_influx_data("Only_DS_Sensors")
             DS_SENSOR_BATT.append_csv_data("Only_DS_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                DS_SENSOR_BATT.prepare_influx_data("Only_DS_Sensors")
 
 
 
