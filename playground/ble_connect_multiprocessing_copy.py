@@ -4,6 +4,17 @@ import time as t
 from helper_copy import *
 import traceback
 import urllib.request
+import logging as log
+
+# Initializing logging info for the log file.
+format = "%(asctime)s.%(msecs)03d: %(message)s"
+log.basicConfig(filename="Final_Application_logfile.log",
+                    filemode="a",
+                    format=format,
+                    level = log.INFO,
+                    datefmt="%d-%b-%y %H:%M:%S")
+
+INFLUXDB_REPORT=True
 
 def print_svcs(per):
     '''
@@ -19,14 +30,14 @@ def print_svcs(per):
 
 
 def connect_device(address):
-    ''' 
+    '''
     This function will connect to the device with given address BLE device using bluepy module.
     @return: Peripheral object that was returned after connection.
     '''
     print("Connecting to {} device...".format(address))
     per = Peripheral(address, ADDR_TYPE_RANDOM, iface=0)
     if (per.addr == mac_address['DS_Sensor_Board'] or per.addr == mac_address['Dummy_DS_Sensor_Board']):
-        per.setDelegate(notifDelegate_DS_Sensor_Board())
+        per.setDelegate(notifDelegate_Only_SHT31())
     elif(per.addr == mac_address['All_Sensor_Board'] or per.addr == mac_address['Dummy_All_Sensor_Board']):
         per.setDelegate(notifDelegate_All_Sensor_Board())
     else:
@@ -34,7 +45,7 @@ def connect_device(address):
     print("Successfully Connected to {} device\n".format(address))
     return per
 
-def check_internet(host='http://149.165.168.73:8086'):
+def check_internet(host='http://149.165.159.180:8086'):
     try:
         urllib.request.urlopen(host) #Python 3.x
         return True
@@ -42,10 +53,55 @@ def check_internet(host='http://149.165.168.73:8086'):
         return False
 
 
-'''
-def check_temperature():
-    this function should check 
-'''
+
+
+class notifDelegate_Only_SHT31(DefaultDelegate):
+    '''
+    Delegate function. This function will be called everytime a notification is received 
+    on the connected peripheral device. This will be set at the time of connection, so single
+    class for a single connection. Also the class `handleNotification` will change according
+    to the connection type.
+    '''
+    def __init__(self):
+        DefaultDelegate.__init__(self)
+			
+    def handleNotification(self, cHandle, data):
+        # Things for process signaling.
+        # thread1_period_end = t.time()
+        # thread1_event.set()
+        dat=int.from_bytes(data, byteorder=sys.byteorder)
+        if(cHandle == DUMMY_SHT31.sht_temp_chrc.valHandle):
+            DUMMY_SHT31.sht_temp_is_fresh = True
+            # Make something here to make sure that this is a fresh data
+            DUMMY_SHT31.sht_temp_data = dat/100
+            print("SHT_Temp : "+str(dat/100)+ " degrees")
+            # Check if the humidity data is fresh. If fresh sent it.
+            if(DUMMY_SHT31.sht_hum_is_fresh == True ):
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DUMMY_SHT31.prepare_influx_data("All_Sensors")
+                    if(DUMMY_SHT31.sht_stale_data==True):
+                        # We have stale data in DUMMY_SHT31.csvfile file. Make sure to read it and send all the data to influxdb along with current data.
+                        # Create a new thread, that will make sure to read the file and run a routine from the class passed to it. 
+                        # If the thread returns zero, change the value of sht_stale_data to false.
+                        p = mp.Process(target=helper_thread_fn, args=(DUMMY_SHT31,), daemon=True).start()
+                        DUMMY_SHT31.sht_stale_data=False
+                else:
+                    DUMMY_SHT31.append_csv_data("All_Sensors")
+        
+        elif(cHandle==DUMMY_SHT31.sht_hum_chrc.valHandle):
+            DUMMY_SHT31.sht_hum_is_fresh = True
+            DUMMY_SHT31.sht_hum_data = dat/100
+            print("SHT_Humidity :{} %".format(dat/100))
+            if(DUMMY_SHT31.sht_temp_is_fresh == True):
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DUMMY_SHT31.prepare_influx_data("All_Sensors")
+                    if(DUMMY_SHT31.sht_stale_data==True):
+                        p = mp.Process(target=helper_thread_fn, args=(DUMMY_SHT31,), daemon=True).start()
+                else:
+                    DUMMY_SHT31.append_csv_data("All_Sensors")
+
+
+
 class notifDelegate_All_Sensor_Board(DefaultDelegate):
     '''
     Delegate function. This function will be called everytime a notification is received 
@@ -64,9 +120,9 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
         if(cHandle == BATT.battery_chrc.valHandle):
             BATT.battery_data = dat/100
             print("All_Sensors Battery: {:.3f}".format(dat))
-            if(check_internet()):
-                BATT.prepare_influx_data("All_Sensors")
             BATT.append_csv_data("All_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                BATT.prepare_influx_data("All_Sensors")
         elif(cHandle==SHT.sht_temp_chrc.valHandle):
             SHT.sht_temp_is_fresh = True
             # Make something here to make sure that this is a fresh data
@@ -74,114 +130,117 @@ class notifDelegate_All_Sensor_Board(DefaultDelegate):
             print("SHT_Temp : "+str(dat/100)+ " degrees")
             # Check if the humidity data is fresh. If fresh sent it.
             if(SHT.sht_hum_is_fresh == True ):
-                if(check_internet()):
-                    SHT.prepare_influx_data("All_Sensors")
                 SHT.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SHT.prepare_influx_data("All_Sensors")
 
         elif(cHandle==SHT.sht_hum_chrc.valHandle):
             SHT.sht_hum_is_fresh = True
             SHT.sht_hum_data = dat/100
             print("SHT_Humidity :{} %".format(dat/100))
             if(SHT.sht_temp_is_fresh == True):
-                if(check_internet()):
-                    SHT.prepare_influx_data("All_Sensors")
                 SHT.append_csv_data("All_Sensors")
-                
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SHT.prepare_influx_data("All_Sensors")
 
         elif(cHandle==APDS.apds_clear_chrc.valHandle):
             APDS.apds_clear_data = dat
             # Add code to send it to flux
-            print("APDS Clear Light: {}".format(dat))   
-            if(check_internet()): 
-                APDS.prepare_influx_data("All_Sensors")
+            print("APDS Clear Light: {}".format(dat))    
             APDS.append_csv_data("All_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                APDS.prepare_influx_data("All_Sensors")
         
         elif(cHandle==BMP.bmp_temp_chrc.valHandle):
             BMP.bmp_temp_is_fresh=True
             BMP.bmp_temp_data = dat/100
             print("BMP temp: {}".format(dat/100))
             if (BMP.bmp_press_is_fresh == True):
-                if(check_internet()):
-                    BMP.prepare_influx_data("All_Sensors")
                 BMP.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    BMP.prepare_influx_data("All_Sensors")
             
         elif(cHandle==BMP.bmp_press_chrc.valHandle):
             BMP.bmp_press_is_fresh=True
             BMP.bmp_press_data = dat/10
             print("BMP Pressure: {}".format(dat/10))
             if(BMP.bmp_temp_is_fresh==True):
-                if(check_internet()):
-                    BMP.prepare_influx_data("All_Sensors")
                 BMP.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    BMP.prepare_influx_data("All_Sensors")
         
         elif(cHandle == LSM.lsm_accelx_chrc.valHandle):
             LSM.lsm_accelx_is_fresh=True
             LSM.lsm_accelx_data = (dat-32768)/100
             print("LSM AccelX value: {}".format((dat-32768)/100))
             if(LSM.lsm_accely_is_fresh == True and LSM.lsm_accelz_is_fresh==True ):
-                if(check_internet()):
-                    LSM.prepare_influx_data("All_Sensors")
                 LSM.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    LSM.prepare_influx_data("All_Sensors")
         
         elif(cHandle == LSM.lsm_accely_chrc.valHandle):
             LSM.lsm_accely_is_fresh=True
             LSM.lsm_accely_data = (dat-32768)/100
             print("LSM AccelY value: {}".format((dat-32768)/100))
             if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accelz_is_fresh==True):
-                if(check_internet()):
-                    LSM.prepare_influx_data("All_Sensors")
                 LSM.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    LSM.prepare_influx_data("All_Sensors")
             
         elif(cHandle == LSM.lsm_accelz_chrc.valHandle):
             LSM.lsm_accelz_is_fresh=True
             LSM.lsm_accelz_data = (dat-32768)/100
             print("LSM AccelZ value: {}".format((dat-32768)/100))
             if(LSM.lsm_accelx_is_fresh == True and LSM.lsm_accely_is_fresh==True):
-                if(check_internet()):
-                    LSM.prepare_influx_data("All_Sensors")
                 LSM.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    LSM.prepare_influx_data("All_Sensors")
         
         elif(cHandle == SCD.scd_co2_chrc.valHandle):
             SCD.scd_co2_is_fresh=True
             SCD.scd_co2_data = dat
             print("SCD Co2 value: {}".format(dat))
             if(SCD.scd_hum_is_fresh==True and SCD.scd_temp_is_fresh==True):
-                if(check_internet()):
-                    SCD.prepare_influx_data("All_Sensors")
                 SCD.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SCD.prepare_influx_data("All_Sensors")
+
 
         elif(cHandle == SCD.scd_temp_chrc.valHandle):
             SCD.scd_temp_is_fresh = True
             SCD.scd_temp_data = dat/100
             print("SCD temp value: {}".format(dat/100))
             if(SCD.scd_co2_is_fresh == True and SCD.scd_hum_is_fresh==True):
-                if(check_internet()):
-                    SCD.prepare_influx_data("All_Sensors")
                 SCD.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SCD.prepare_influx_data("All_Sensors")
+
 
         elif(cHandle == SCD.scd_hum_chrc.valHandle):
             SCD.scd_hum_is_fresh=True
             SCD.scd_hum_data = dat/100
             print("SCD humidity value: {}".format(dat/100))
             if(SCD.scd_temp_is_fresh == True and SCD.scd_co2_is_fresh==True):
-                if(check_internet()):
-                    SCD.prepare_influx_data("All_Sensors")
                 SCD.append_csv_data("All_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    SCD.prepare_influx_data("All_Sensors")
+
 
         elif(cHandle == DS.ds_temp_chrcs[0].valHandle):
             DS.ds_temp_is_fresh[0]=True
             DS.ds_temp_datas[0] = (dat/100)
             print("DS temp1: {}".format(dat/100))
-            if(check_internet()):
-                DS.prepare_influx_data("All_Sensors")
             DS.append_csv_data("All_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                DS.prepare_influx_data("All_Sensors")
 
         elif(cHandle == BME.bme_tvoc_chrc.valHandle):
             BME.bme_tvoc_data=dat
             print("ALl Sensors BME_TVOC: {}".format(dat))
-            if(check_internet()):
-                BME.prepare_influx_data("All_Sensors")
             BME.append_csv_data("All_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                BME.prepare_influx_data("All_Sensors")
+
 
 
 
@@ -203,108 +262,105 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
         dat=int.from_bytes(data, byteorder=sys.byteorder)
         if(cHandle == DS_SENSOR_DS.ds_temp_chrcs[0].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[0]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             # Here we have to give temp_data a list of address and data value.
             # This is redundant for all the chrc handles but let it be for now.
             DS_SENSOR_DS.ds_temp_datas[0] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp1: {}".format(hex(DS_SENSOR_DS.ds_temp_datas[0][0]),DS_SENSOR_DS.ds_temp_datas[0][1]))
             # print("Address: {}\tDS temp1: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[0]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                     DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[1].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[1]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[1] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp2: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[1]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
-
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[2].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[2]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[2] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp3: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[2]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
-
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[3].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[3]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[3] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp4: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[3]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[4].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[4]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[4] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp5: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[4]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[5].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[5]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[5] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp6: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[5]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[6].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[6]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[6] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp7: {}".format(hex(dat&0xFF),DS_SENSOR_DS.ds_temp_datas[6]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[7].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[7]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[7] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp8: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[7]))
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_DS.ds_temp_chrcs[8].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
-            DS_SENSOR_DS.ds_temp_is_fresh[8]=True
+            DS_SENSOR_DS.ds_temp_is_fresh[index]=True
             DS_SENSOR_DS.ds_temp_datas[8] = [(dat&0xFF),((dat>>8)/100)]
             print("Address: {}\tDS temp9: {}".format(hex(dat&0xFF), DS_SENSOR_DS.ds_temp_datas[8]))
-            # DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
-            DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
             if(all(DS_SENSOR_DS.ds_temp_is_fresh)):
-                if(check_internet()):
-                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
                 DS_SENSOR_DS.append_csv_data("Only_DS_Sensors")
+                if(check_internet() and INFLUXDB_REPORT is True):
+                    DS_SENSOR_DS.prepare_influx_data("Only_DS_Sensors")
 
         elif(cHandle == DS_SENSOR_BATT.battery_chrc.valHandle):
             DS_SENSOR_BATT.battery_data = dat/100
             print("Only DS Sensor Battery: {:.3f}".format(DS_SENSOR_BATT.battery_data))
-            if(check_internet()):
-                DS_SENSOR_BATT.prepare_influx_data("Only_DS_Sensors")
             DS_SENSOR_BATT.append_csv_data("Only_DS_Sensors")
+            if(check_internet() and INFLUXDB_REPORT is True):
+                DS_SENSOR_BATT.prepare_influx_data("Only_DS_Sensors")
+
 
 
 def thread1():
@@ -314,7 +370,7 @@ def thread1():
     This function will be used by the first thread. It will connect to the all_sensor_board.
     Continously wait for the notification.
     '''
-    _is_ble_connected = False
+    _is_ble_connected_thread1 = False
     while(True):
         try:
             
@@ -322,8 +378,7 @@ def thread1():
 
             # notifdelegate class needs to access these classes, so make them global.
             global SHT, APDS, BMP, LSM, SCD, DS, BATT, BME, thread1_period_end
-            
-            if(_is_ble_connected==False):
+            if(_is_ble_connected_thread1==False):
                 peripheral=None
                 SHT=APDS=BMP=LSM=SCD=DS=BATT=BME=None
                 peripheral = connect_device(mac_address[str(mp.current_process().name)])
@@ -350,7 +405,7 @@ def thread1():
                 SCD.configure()
                 DS.configure()
                 BME.configure()
-                _is_ble_connected=True
+                _is_ble_connected_thread1=True
 
             print("Thread 1: Done Configuration! Waiting for notification!!")
             
@@ -365,35 +420,40 @@ def thread1():
             print(traceback.format_exc())
             if(peripheral is not None):
                 peripheral.disconnect()
-                _is_ble_connected=False
+                _is_ble_connected_thread1=False
             print("Thread 1: Bluetooth Exception: {}".format(e))
-            # send_message("Thread 1: Exception: {}".format(e))
+            send_message("Thread 1: Bluetooth Exception: {}".format(e))
+            log.error(e)
             time.sleep(10)
         except Exception as e:
             print("Other Exception: \n"+str(traceback.format_exc()))
-            
+            log.error(e)
 
 
 def thread2():
+    _is_ble_connected_thread2=False
     while(True):
         try:
-            peripheral=None
+            global DS_SENSOR_DS, DS_SENSOR_BATT
             t.sleep(10)
             print("Thread 2: Connecting to peripheral!!!")
-            peripheral = connect_device(mac_address[str(mp.current_process().name)])
-            print_svcs(peripheral)
-            # notifdelegate class needs to access this class, so make it global
-            global DS_SENSOR_DS, DS_SENSOR_BATT
-            print("Thread 2: Initiating DS sensor class!!!")
-            DS_SENSOR_DS = DS_service(periph=peripheral, 
-                                      UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', 
-                                      num_sensors=9)
-            DS_SENSOR_BATT = Battery_service(periph=peripheral, 
-                                             UUID='b9ad8153-8145-4575-9d1a-ab745b5b2d08', 
-                                             BATTERY_VAL_UUID='e0482d82-3a6f-4f52-b35f-c86eda8747fd')
-            print("Thread 2: Configuring DS sensor class!!!")
-            DS_SENSOR_DS.configure()
-            DS_SENSOR_BATT.configure()
+            if(_is_ble_connected_thread2==False):
+                peripheral=None
+                peripheral = connect_device(mac_address[str(mp.current_process().name)])
+                print_svcs(peripheral)
+                # notifdelegate class needs to access this class, so make it global
+                
+                print("Thread 2: Initiating DS sensor class!!!")
+                DS_SENSOR_DS = DS_service(periph=peripheral, 
+                                        UUID='e66e54fc-4231-41ae-9663-b43f50cfcb3b', 
+                                        num_sensors=9)
+                DS_SENSOR_BATT = Battery_service(periph=peripheral, 
+                                                UUID='b9ad8153-8145-4575-9d1a-ab745b5b2d08', 
+                                                BATTERY_VAL_UUID='e0482d82-3a6f-4f52-b35f-c86eda8747fd')
+                print("Thread 2: Configuring DS sensor class!!!")
+                DS_SENSOR_DS.configure()
+                DS_SENSOR_BATT.configure()
+                _is_ble_connected_thread2=True
 
             print("Thread 2: Done Configuration! Waiting for notification!!")
             # Wait indefinitely to receive notifications from the connection.
@@ -403,13 +463,57 @@ def thread2():
         
         # Try and except will make sure the code doesn't stop.
         # Disconnect and notify user about the exception.
-        except Exception as e:
+        except BTLEException as e:
             print(traceback.format_exc())
             if(peripheral is not None):
                 peripheral.disconnect()
-            print("Thread 2: Exception: {}".format(e))
-            # send_message("Thread 2: Exception: {}".format(e))
+                _is_ble_connected_thread2=False
+            print("Thread 2: Bluetooth Exception: {}".format(e))
+            send_message("Thread 2: Bluetooth Exception: {}".format(e))
+            log.error(e)
             time.sleep(10)
+        except Exception as e:
+            print("Other Exception: \n"+str(traceback.format_exc()))
+            log.error(e)
+            
+def thread3():
+    _is_ble_connected_thread3=False
+    while(True):
+        try:
+            global DUMMY_SHT31
+            t.sleep(10)
+            print("Thread 3: Connecting to peripheral!!!")
+            if(_is_ble_connected_thread3==False):
+                peripheral=None
+                peripheral = connect_device(mac_address[str(mp.current_process().name)])
+                print_svcs(peripheral)
+                # notifdelegate class needs to access this class, so make it global
+                
+                print("Thread 3: Initiating SHT31 sensor class!!!")
+                DUMMY_SHT31 = SHT_service(periph=peripheral)
+                DUMMY_SHT31.configure()
+                print("Thread 3: Configuring DS sensor class!!!")
+                _is_ble_connected_thread2=True
+
+            # Wait indefinitely to receive notifications from the connection.
+            while True:
+                if peripheral.waitForNotifications(1.0):
+                    continue
+        
+        # Try and except will make sure the code doesn't stop.
+        # Disconnect and notify user about the exception.
+        except BTLEException as e:
+            print(traceback.format_exc())
+            if(peripheral is not None):
+                peripheral.disconnect()
+                _is_ble_connected_thread2=False
+            print("Thread 3: Bluetooth Exception: {}".format(e))
+            send_message("Thread 3: Bluetooth Exception: {}".format(e))
+            log.error(e)
+            time.sleep(10)
+        except Exception as e:
+            print("Other Exception: \n"+str(traceback.format_exc()))
+            log.error(e)
             
 
 # Mac address list to store the address of the sensor boards.
@@ -431,7 +535,7 @@ proc_list=[]
 if __name__ == "__main__":
     # Make two processes and append them in the list.
     proc_list.append(mp.Process(target=thread1, name="Dummy_All_Sensor_Board"))
-    proc_list.append(mp.Process(target=thread2, name="Dummy_DS_Sensor_Board"))
+    proc_list.append(mp.Process(target=thread3, name="Dummy_DS_Sensor_Board"))
 
 # TODO: Need to support signalling between threads to make sure if a process is stuck we
         # should be able to restart a thread.
@@ -442,12 +546,13 @@ if __name__ == "__main__":
 # If not just respawn that thread and notify user.
     while True:
         if(proc_list[0].is_alive() is False):
-            print("THREAD 1 died")
-            # send_message("Thread 1 Died for some reason. Starting it again!!!")
+            log.error("Thread 1 died")
+            send_message("Thread 1 Died for some reason. Starting it again!!!")
             proc_list[0]=mp.Process(target=thread1, name="All_Sensor_Board")
             proc_list[0].start()
         elif(proc_list[1].is_alive() is False):
-            # send_message("Thpread 2 Died for some reason. Starting it again!!!")
+            log.error("Thread 2 died")
+            send_message("Thread 2 Died for some reason. Starting it again!!!")
             proc_list[1]=mp.Process(target=thread2, name="DS_Sensor_Board")
             proc_list[1].start()
         # Wait for 10 minutes before doing anything

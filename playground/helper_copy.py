@@ -5,6 +5,7 @@ import http.client, urllib
 import csv
 from datetime import datetime
 import os
+from influxdb_helper_copy import *
 
 
 def send_message(_msg):
@@ -71,6 +72,7 @@ class SHT_service():
 		self.sht_temp_data=0
 		self.sht_hum_data=0
 		self.csv_file_name = "/home/dev/new/playground/SHT/Local_SHT_Data.csv"
+		self.sht_stale_data = True
 			
 	def getService(self):
 		self.sht_svc = self.per.getServiceByUUID(self.SHT_PRI_UUID)
@@ -104,6 +106,7 @@ class SHT_service():
 			send_message("Critical Temperature Notified in SHT31: {}".format(self.sht_temp_data))
 		if(self.sht_hum_data!=0 and (self.sht_hum_data<=40.00 or self.sht_hum_data>=70.00)):
 			send_message("Critical Humidity Notified in SHT31: {}".format(self.sht_hum_data))
+
 	def open_csv_file(self):
 		header = ["time", "Board", "Temperature", "Humidity"]
 		if(os.path.exists(self.csv_file_name)):
@@ -115,6 +118,7 @@ class SHT_service():
 				writer.writerow(header)
 
 	def append_csv_data(self,tag):
+		self.sht_stale_data=True
 		self.sht_sht_hum_is_fresh=False
 		self.sht_temp_is_fresh=False
 		time_t = time.ctime()
@@ -123,26 +127,70 @@ class SHT_service():
 			writer = csv.writer(self.csv_fp)
 			writer.writerow(data)
 
+	def send_stale_data_influxdb(self, client_api, bucket, org)->str:
+		'''
+		At some point, we lost the connection with internet and hence we were not able to send the influxdb data. This routine, will be run by a different thread
+		which will check the data and send it over to influxdb.
+		'''
+		file = open(self.csv_file_name)
+		csvfilereader = csv.reader(file)
+		header = next(csvfilereader)
+		print("Header: {}".format(header))
+		write_api = client_api.write_api(write_options=SYNCHRONOUS)
+		while(1):
+			try:
+				for row in csvfilereader:
+					point = (
+							Point("SHT31")
+							.time(row[0])
+							.tag("Board", row[1])
+							# .tag("Measurement","APDS")
+							.field("Temperature", float(row[2]))
+							.field("Humidity", float(row[3]))
+						)
+					write_api.write(bucket=bucket,org=org,record=point)
+			
+			except Exception as e:
+				print(e)
+
+			else:
+				os.remove(self.csv_file_name)
+				with open(self.csv_file_name, "w") as csv_fp:
+					writer = csv.writer(csv_fp)
+					writer.writerow(header)
+				break
+		file.close()
+		self.sht_stale_data=False
+		return self.csv_file_name
+		
 	def prepare_influx_data(self, tag):
 		# self.check_data()
 		iso = time.ctime()
 		# self.append_csv_data(iso, tag)
 		self.sht_sht_hum_is_fresh=False
 		self.sht_temp_is_fresh=False
-		json_body = [
-		{
-			"measurement": "SHT",
-			"time_t":iso,
-			"tags":{
-				"Board": tag,
-				},
-			"fields": {
-				"Temperature": self.sht_temp_data,
-				"Humidity": self.sht_hum_data,
-				}
-			}
-		]
-		write_influx_data(json_body)
+		# json_body = [
+		# {
+		# 	"measurement": "SHT",
+		# 	"time_t":iso,
+		# 	"tags":{
+		# 		"Board": tag,
+		# 		},
+		# 	"fields": {
+		# 		"Temperature": self.sht_temp_data,
+		# 		"Humidity": self.sht_hum_data,
+		# 		}
+		# 	}
+		# ]
+		point = (
+			Point("SHT31")
+			.tag("Board", tag)
+			.time(iso)
+			.field("Temperature",self.sht_temp_data)
+			.field("Humidity",self.sht_hum_data)
+
+		)
+		write_influx_data(point)
 
 
 	def configure(self):
