@@ -5,6 +5,7 @@ from helper_copy import *
 import traceback
 import urllib.request
 import logging as log
+import psutil , os
 
 # Initializing logging info for the log file.
 format = "%(asctime)s.%(msecs)03d: %(message)s"
@@ -37,7 +38,7 @@ def connect_device(address):
     print("Connecting to {} device...".format(address))
     per = Peripheral(address, ADDR_TYPE_RANDOM, iface=0)
     if (per.addr == mac_address['DS_Sensor_Board'] or per.addr == mac_address['Dummy_DS_Sensor_Board']):
-        per.setDelegate(notifDelegate_Only_SHT31())
+        per.setDelegate(notifDelegate_DS_Sensor_Board())
     elif(per.addr == mac_address['All_Sensor_Board'] or per.addr == mac_address['Dummy_All_Sensor_Board']):
         per.setDelegate(notifDelegate_All_Sensor_Board())
     else:
@@ -69,6 +70,8 @@ class notifDelegate_Only_SHT31(DefaultDelegate):
         # Things for process signaling.
         # thread1_period_end = t.time()
         # thread1_event.set()
+        proc = psutil.Process(os.getpid)
+        print(proc.name())
         dat=int.from_bytes(data, byteorder=sys.byteorder)
         if(cHandle == DUMMY_SHT31.sht_temp_chrc.valHandle):
             DUMMY_SHT31.sht_temp_is_fresh = True
@@ -259,6 +262,8 @@ class notifDelegate_DS_Sensor_Board(DefaultDelegate):
         # Things for process signaling.
         # thread2_event.set()
         # thread2_period_end=t.time()
+        
+        print(str(mp.current_process().name))
         dat=int.from_bytes(data, byteorder=sys.byteorder)
         if(cHandle == DS_SENSOR_DS.ds_temp_chrcs[0].valHandle):
             index = DS_SENSOR_DS.put_data_in_appropriate_place(dat&0xFF, ((dat>>8)/100))
@@ -518,7 +523,7 @@ def thread3():
 
 # Mac address list to store the address of the sensor boards.
 mac_address={'Dummy_DS_Sensor_Board':'DE:F7:1D:89:55:D5','DS_Sensor_Board': 'F9:FB:6E:E2:90:3F',
-                'Dummy_All_Sensor_Board': 'FC:9A:71:3C:E4:B8', 'All_Sensor_Board': 'CF:D8:B3:75:D1:D5'}
+                'Dummy_All_Sensor_Board': 'DE:F7:1D:89:55:D5', 'All_Sensor_Board': 'CF:D8:B3:75:D1:D5'}
 # List to store the number of processes.
 proc_list=[]
 
@@ -535,7 +540,7 @@ proc_list=[]
 if __name__ == "__main__":
     # Make two processes and append them in the list.
     proc_list.append(mp.Process(target=thread1, name="Dummy_All_Sensor_Board"))
-    proc_list.append(mp.Process(target=thread3, name="Dummy_DS_Sensor_Board"))
+    proc_list.append(mp.Process(target=thread2, name="Dummy_DS_Sensor_Board"))
 
 # TODO: Need to support signalling between threads to make sure if a process is stuck we
         # should be able to restart a thread.
